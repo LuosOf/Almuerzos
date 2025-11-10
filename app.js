@@ -61,6 +61,7 @@ class LunchApp {
     this.inputDate = document.getElementById('input-date');
     this.inputQty = document.getElementById('input-qty');
     this.inputNotes = document.getElementById('input-notes');
+    this.btnAdd = document.getElementById('btn-add');
     this.mealsContainer = document.getElementById('meals-container');
     this.empty = document.getElementById('empty');
     this.search = document.getElementById('search');
@@ -139,6 +140,9 @@ class LunchApp {
 
   bind(){
     this.form.addEventListener('submit', (e) => { e.preventDefault(); this.addOrUpdate(); });
+    if (this.btnAdd) {
+      this.btnAdd.addEventListener('click', (e) => { e.preventDefault(); this.addOrUpdate(); });
+    }
     this.search.addEventListener('input', () => this.render());
     this.filterDate.addEventListener('change', () => this.render());
     this.btnReset.addEventListener('click', () => {
