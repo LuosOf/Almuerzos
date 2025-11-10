@@ -20,31 +20,7 @@ class LunchApp {
     this.renderClientSelect();
     this.bind();
     this.render();
-
-    // Register service worker for PWA (if supported)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        console.info('ServiceWorker registrado', reg);
-      }).catch(err => console.warn('ServiceWorker registro fallido:', err));
-    }
-
-    // beforeinstallprompt handling
-    this.deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
-      if (this.btnInstall) this.btnInstall.style.display = 'inline-block';
-    });
-    // Detect iOS (Safari) where beforeinstallprompt doesn't fire; show install button to show instructions
-    try{
-      const ua = navigator.userAgent || '';
-      const isIos = /iphone|ipad|ipod/i.test(ua);
-      const isInStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-      if (isIos && !isInStandalone && this.btnInstall) {
-        // show the install/help button so user can add to Home Screen manually
-        this.btnInstall.style.display = 'inline-block';
-      }
-    }catch(e){}
+    // no PWA/installation prompt: keep app as web app with JSON/localStorage
   }
 
   cache() {
@@ -65,17 +41,25 @@ class LunchApp {
     this.whatsappNumber = document.getElementById('whatsapp-number');
     this.btnWhatsApp = document.getElementById('btn-whatsapp');
     this.btnExportJson = document.getElementById('btn-export-json');
-    this.btnInstall = document.getElementById('btn-install');
+    this.btnImportJson = document.getElementById('btn-import-json');
+    this.fileImport = document.getElementById('file-import');
   }
 
   loadClients() {
     try {
       const raw = localStorage.getItem(CLIENTS_STORAGE_KEY);
-      this.clients = raw ? JSON.parse(raw) : [...DEFAULT_CLIENTS];
+      let loaded = raw ? JSON.parse(raw) : DEFAULT_CLIENTS.slice();
+      // normalize clients to objects { name, phone }
+      this.clients = loaded.map(c => {
+        if (!c) return null;
+        if (typeof c === 'string') return { name: c, phone: '' };
+        if (typeof c === 'object' && c.name) return { name: c.name, phone: c.phone || '' };
+        return null;
+      }).filter(Boolean);
       this.saveClients();
     } catch (err) {
       console.error('Error cargando clientes:', err);
-      this.clients = [...DEFAULT_CLIENTS];
+      this.clients = DEFAULT_CLIENTS.map(n => ({ name: n, phone: '' }));
     }
   }
 
@@ -87,8 +71,8 @@ class LunchApp {
     this.selectClient.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
     for (const client of this.clients) {
       const opt = document.createElement('option');
-      opt.value = client;
-      opt.textContent = client;
+      opt.value = client.name;
+      opt.textContent = client.name;
       this.selectClient.appendChild(opt);
     }
   }
@@ -100,7 +84,8 @@ class LunchApp {
       if (isVisible) {
         this.addNewClient();
       } else {
-        this.newClientName.style.display = 'block';
+        this.newClientName.style.display = 'inline-block';
+        if (this.newClientPhone) this.newClientPhone.style.display = 'inline-block';
         this.newClientName.focus();
       }
     });
@@ -111,26 +96,38 @@ class LunchApp {
         this.addNewClient();
       }
     });
+    if (this.newClientPhone) {
+      this.newClientPhone.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.addNewClient();
+        }
+      });
+    }
   }
 
   addNewClient() {
-    const name = this.newClientName.value.trim();
+    const name = (this.newClientName && this.newClientName.value.trim()) || '';
+    const phone = (this.newClientPhone && this.newClientPhone.value.trim()) || '';
     if (!name) {
       showAlert('Cliente', 'Ingresa un nombre de cliente.', 'warning');
       return;
     }
-    if (this.clients.includes(name)) {
+    if (this.clients.some(c => c.name === name)) {
       showAlert('Cliente', 'Este cliente ya existe.', 'warning');
-      this.newClientName.value = '';
+      if (this.newClientName) this.newClientName.value = '';
+      if (this.newClientPhone) this.newClientPhone.value = '';
       return;
     }
-    this.clients.push(name);
-    this.clients.sort();
+    this.clients.push({ name, phone });
+    this.clients.sort((a, b) => a.name.localeCompare(b.name));
     this.saveClients();
     this.renderClientSelect();
     this.selectClient.value = name;
-    this.newClientName.value = '';
-    this.newClientName.style.display = 'none';
+    if (this.newClientName) this.newClientName.value = '';
+    if (this.newClientPhone) this.newClientPhone.value = '';
+    if (this.newClientName) this.newClientName.style.display = 'none';
+    if (this.newClientPhone) this.newClientPhone.style.display = 'none';
   }
 
   bind(){
@@ -148,25 +145,18 @@ class LunchApp {
     this.btnClear.addEventListener('click', () => this.form.reset());
     this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
     this.btnExportJson.addEventListener('click', () => this.exportJson());
-    if (this.btnInstall) {
-      this.btnInstall.addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (this.deferredPrompt) {
-          this.deferredPrompt.prompt();
-          const choice = await this.deferredPrompt.userChoice;
-          if (choice.outcome === 'accepted') {
-            showToast('Instalación aceptada', 'success');
-          } else {
-            showToast('Instalación cancelada', 'info');
-          }
-          this.deferredPrompt = null;
-          this.btnInstall.style.display = 'none';
-        } else {
-          // show manual install instructions (iOS or browsers that don't fire beforeinstallprompt)
-          showInstallInstructions();
-        }
-      });
+    if (this.btnImportJson && this.fileImport) {
+      this.btnImportJson.addEventListener('click', () => this.fileImport.click());
+      this.fileImport.addEventListener('change', (e) => this.handleImportFile(e));
     }
+
+    // when client selected, fill whatsappNumber if known
+    this.selectClient.addEventListener('change', () => {
+      const name = this.selectClient.value;
+      const c = this.clients.find(x => x.name === name);
+      if (c && c.phone) this.whatsappNumber.value = c.phone; 
+    });
+    // no install button handling (app stays as web app)
   }
 
   load(){
@@ -380,6 +370,51 @@ class LunchApp {
     window.open(url, '_blank');
   }
 
+  // Import JSON file handler
+  handleImportFile(e){
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('JSON debe ser un arreglo de registros');
+        // confirm replace
+        if (window.Swal) {
+          Swal.fire({
+            title: 'Importar JSON',
+            text: '¿Deseas reemplazar los registros actuales con los del archivo importado?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Reemplazar',
+            cancelButtonText: 'Cancelar'
+          }).then(res => {
+            if (res.isConfirmed) {
+              this.meals = data;
+              this.save();
+              this.render();
+              showToast('Importación completada', 'success');
+            }
+          });
+        } else {
+          if (confirm('Reemplazar registros actuales con los del archivo importado?')){
+            this.meals = data;
+            this.save();
+            this.render();
+            showToast('Importación completada', 'success');
+          }
+        }
+      }catch(err){
+        console.error('Error importando JSON:', err);
+        showAlert('Importar', 'Archivo JSON inválido. Asegúrate de que contiene un arreglo de registros.', 'error');
+      } finally {
+        // reset file input
+        try{ this.fileImport.value = ''; } catch(e){}
+      }
+    };
+    reader.readAsText(file);
+  }
+
   exportJson(){
     const data = JSON.stringify(this.meals, null, 2);
     const a = document.createElement('a');
@@ -446,40 +481,6 @@ function showAlert(title, text, icon='warning'){
   try{ alert(text); }catch(e){}
 }
 
-function showInstallInstructions(){
-  const html = `
-    <div style="text-align:left;line-height:1.4">
-      <h3>Agregar a la pantalla de inicio</h3>
-      <p>Sigue estos pasos para crear un acceso directo con el icono del proyecto:</p>
-      <h4>Android (Chrome)</h4>
-      <ol>
-        <li>Abre el menú (⋮) en Chrome.</li>
-        <li>Selecciona "Agregar a pantalla de inicio".</li>
-        <li>Confirma y el acceso aparecerá en tu inicio.</li>
-      </ol>
-      <h4>iPhone / iPad (Safari)</h4>
-      <ol>
-        <li>Toca el botón de compartir (cuadro con flecha hacia arriba).</li>
-        <li>Busca y selecciona "Añadir a pantalla de inicio".</li>
-        <li>Confirma; el acceso se añadirá con el icono del sitio.</li>
-      </ol>
-      <p>El acceso corto abrirá la app en modo "aplicación" (sin barra de navegador) y usará el icono que añadimos.</p>
-    </div>
-  `;
-  try{
-    if (window.Swal) {
-      Swal.fire({
-        title: 'Instalar app',
-        html: html,
-        showCloseButton: true,
-        showConfirmButton: false,
-        width: 500
-      });
-      return;
-    }
-  }catch(e){}
-  alert('Sigue las opciones de tu navegador para "Agregar a pantalla de inicio".');
-}
 
 // Inicializar cuando DOM esté listo
 document.addEventListener('DOMContentLoaded', ()=> new LunchApp());

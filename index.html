@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Control de Almuerzos</title>
     <link rel="stylesheet" href="styles.css" />
-    <!-- Favicon / icons -->
-    <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+    
   </head>
   <body>
     <div class="app-container">
@@ -15,8 +13,7 @@
       <header class="app-header">
         <div class="header-content">
               <h1>🍽️ Control de Almuerzos</h1>
-              <button id="btn-install" class="btn btn-install" style="display:none;">Instalar app</button>
-          <p>Registra y gestiona entregas</p>
+              <p>Registra y gestiona entregas</p>
         </div>
       </header>
 
@@ -37,7 +34,8 @@
                 </select>
                 <button type="button" id="btn-add-client" class="btn-small" title="Agregar nuevo cliente">+</button>
               </div>
-              <input type="text" id="new-client-name" placeholder="Nuevo cliente" style="display:none;" />
+                <input type="text" id="new-client-name" placeholder="Nuevo cliente" style="display:none; width:60%;" />
+                <input type="tel" id="new-client-phone" placeholder="Teléfono (opcional)" style="display:none; width:35%; margin-left:4px;" />
             </div>
 
             <!-- Fecha y Cantidad en fila -->
@@ -87,6 +85,8 @@
             <input id="whatsapp-number" type="tel" placeholder="Número WhatsApp (opcional)" />
             <button id="btn-whatsapp" type="button" class="btn btn-whatsapp">📱 Enviar a WhatsApp</button>
             <button id="btn-export-json" type="button" class="btn btn-tertiary">📥 Exportar JSON</button>
+            <button id="btn-import-json" type="button" class="btn btn-tertiary">📤 Importar JSON</button>
+            <input id="file-import" type="file" accept="application/json" style="display:none" />
           </div>
           <small class="help-text">Se abrirá WhatsApp con el mensaje listo. Debes confirmar el envío manualmente.</small>
         </section>
@@ -107,12 +107,6 @@
         <small>Control de Almuerzos • Datos guardados localmente</small>
       </footer>
     </div>
-
-    <!-- PWA manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <!-- SweetAlert2 para alerts/confirm modernos -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
