@@ -207,6 +207,16 @@ class LunchApp {
       
       const badgeClass = m.delivered ? 'badge-delivered' : 'badge-pending';
       const badgeText = m.delivered ? '✓ Entregado' : '⏳ Pendiente';
+      // Íconos SVG para toggle (más consistentes que emojis en distintos sistemas)
+      const deliveredIcon = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>`;
+      const pendingIcon = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+        </svg>`;
+      const toggleIcon = m.delivered ? deliveredIcon : pendingIcon;
 
       div.innerHTML = `
         <div class="meal-info">
@@ -219,7 +229,7 @@ class LunchApp {
           </div>
         </div>
         <div class="meal-actions">
-          <button type="button" data-action="toggle" data-id="${m.id}" title="${m.delivered ? 'Marcar como no entregado' : 'Marcar como entregado'}">${m.delivered ? '✅' : '📦'}</button>
+          <button type="button" data-action="toggle" data-id="${m.id}" title="${m.delivered ? 'Marcar como no entregado' : 'Marcar como entregado'}">${toggleIcon}</button>
           <button type="button" data-action="edit" data-id="${m.id}" title="Editar">✏️</button>
           <button type="button" data-action="delete" data-id="${m.id}" title="Eliminar">🗑️</button>
         </div>
