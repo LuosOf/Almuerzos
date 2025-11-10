@@ -1,76 +1,109 @@
 <!doctype html>
 <html lang="es">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title>Control de Almuerzos</title>
-		<link rel="stylesheet" href="styles.css" />
-	</head>
-	<body>
-		<main class="app">
-			<header>
-				<h1>Control de Almuerzos</h1>
-				<p class="lead">Registrar y gestionar entregas de almuerzos. Datos guardados en tu navegador.</p>
-			</header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Control de Almuerzos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-content">
+          <h1>🍽️ Control de Almuerzos</h1>
+          <p>Registra y gestiona entregas</p>
+        </div>
+      </header>
 
-			<section class="panel">
-				<form id="meal-form">
-					<div class="row">
-						<label>Nombre
-							<input id="input-name" type="text" placeholder="Nombre del beneficiario" required />
-						</label>
-						<label>Fecha
-							<input id="input-date" type="date" required />
-						</label>
-						<label>Cantidad
-							<input id="input-qty" type="number" min="1" value="1" required />
-						</label>
-					</div>
-					<label>Observaciones
-						<input id="input-notes" type="text" placeholder="Opcional" />
-					</label>
-					<div class="actions">
-						<button id="btn-add" type="submit">Agregar almuerzo</button>
-						<button id="btn-clear" type="button" class="muted">Limpiar</button>
-					</div>
-				</form>
-			</section>
+      <!-- Main Content -->
+      <main class="app-main">
+        
+        <!-- Formulario de registro -->
+        <section class="card form-card">
+          <h2>Nuevo Registro</h2>
+          <form id="meal-form">
+            
+            <!-- Cliente -->
+            <div class="form-group">
+              <label for="select-client">Cliente *</label>
+              <div class="client-select-wrapper">
+                <select id="select-client" required>
+                  <option value="">-- Seleccionar cliente --</option>
+                </select>
+                <button type="button" id="btn-add-client" class="btn-small" title="Agregar nuevo cliente">+</button>
+              </div>
+              <input type="text" id="new-client-name" placeholder="Nuevo cliente" style="display:none;" />
+            </div>
 
-			<section class="panel filters">
-				<input id="search" type="search" placeholder="Buscar por nombre..." />
-				<label>Filtrar fecha
-					<input id="filter-date" type="date" />
-				</label>
-						<button id="btn-reset-filters" class="muted">Restablecer filtros</button>
+            <!-- Fecha y Cantidad en fila -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-date">Fecha *</label>
+                <input id="input-date" type="date" required />
+              </div>
+              <div class="form-group">
+                <label for="input-qty">Cantidad *</label>
+                <input id="input-qty" type="number" min="1" value="1" required />
+              </div>
+            </div>
 
-						<div class="share-panel">
-							<label>Número WhatsApp (opcional, formato internacional sin +)
-								<input id="whatsapp-number" type="tel" placeholder="34123456789" />
-							</label>
-							<div class="share-actions">
-								<button id="btn-whatsapp" type="button">Enviar relación a WhatsApp</button>
-								<button id="btn-export-json" type="button" class="muted">Exportar JSON</button>
-							</div>
-							<small class="muted">Se abrirá WhatsApp (app o web) con el mensaje listo para enviar. Por seguridad WhatsApp requiere confirmación manual para enviar.</small>
-						</div>
-			</section>
+            <!-- Observaciones -->
+            <div class="form-group">
+              <label for="input-notes">Observaciones</label>
+              <input id="input-notes" type="text" placeholder="Notas opcionales" />
+            </div>
 
-			<section class="panel list">
-				<h2>Registros</h2>
-				<div id="empty" class="empty">No hay almuerzos registrados.</div>
-				<table id="meals-table" class="meals" aria-live="polite">
-					<thead>
-						<tr><th>Nombre</th><th>Fecha</th><th>Cantidad</th><th>Obs.</th><th>Entregado</th><th>Acciones</th></tr>
-					</thead>
-					<tbody></tbody>
-				</table>
-			</section>
+            <!-- Botones de acción -->
+            <div class="form-actions">
+              <button id="btn-add" type="submit" class="btn btn-primary">Registrar</button>
+              <button id="btn-clear" type="button" class="btn btn-secondary">Limpiar</button>
+            </div>
+          </form>
+        </section>
 
-			<footer class="footer">
-				<small>Aplicación simple para control de almuerzos — Datos locales (localStorage).</small>
-			</footer>
-		</main>
+        <!-- Filtros y búsqueda -->
+        <section class="card filters-card">
+          <h3>Filtros</h3>
+          <div class="filters-grid">
+            <div class="filter-item">
+              <input id="search" type="search" placeholder="🔍 Buscar cliente..." />
+            </div>
+            <div class="filter-item">
+              <input id="filter-date" type="date" />
+            </div>
+            <button id="btn-reset-filters" class="btn btn-tertiary">Restablecer</button>
+          </div>
+        </section>
 
-		<script type="module" src="app.js"></script>
-	</body>
+        <!-- Compartir a WhatsApp -->
+        <section class="card share-card">
+          <h3>Compartir</h3>
+          <div class="share-form">
+            <input id="whatsapp-number" type="tel" placeholder="Número WhatsApp (opcional)" />
+            <button id="btn-whatsapp" type="button" class="btn btn-whatsapp">📱 Enviar a WhatsApp</button>
+            <button id="btn-export-json" type="button" class="btn btn-tertiary">📥 Exportar JSON</button>
+          </div>
+          <small class="help-text">Se abrirá WhatsApp con el mensaje listo. Debes confirmar el envío manualmente.</small>
+        </section>
+
+        <!-- Lista de registros -->
+        <section class="card list-card">
+          <h2>Registros</h2>
+          <div id="empty" class="empty-state">
+            <p>📭 No hay registros. ¡Agrega uno nuevo!</p>
+          </div>
+          <div id="meals-container" class="meals-list"></div>
+        </section>
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <small>Control de Almuerzos • Datos guardados localmente</small>
+      </footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

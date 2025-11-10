@@ -1,22 +1,35 @@
-// app.js - Lógica de la SPA de control de almuerzos
+// app.js - Control de almuerzos con gestión de clientes
 const STORAGE_KEY = 'almuerzos_v1';
+const CLIENTS_STORAGE_KEY = 'clientes_v1';
 
-class LunchApp{
-  constructor(){
+// Clientes predefinidos
+const DEFAULT_CLIENTS = [
+  'Luis', 'Marcos', 'Gabriel', 'Carlos', 'Ruth', 'Darith',
+  'Jorsy', 'Wilder', 'Mayra', 'Lio', 'Jose Peña'
+];
+
+class LunchApp {
+  constructor() {
     this.meals = [];
+    this.clients = [];
     this.cache();
-    this.bind();
+    this.loadClients();
+    this.bindClients();
     this.load();
+    this.renderClientSelect();
+    this.bind();
     this.render();
   }
 
-  cache(){
+  cache() {
     this.form = document.getElementById('meal-form');
-    this.inputName = document.getElementById('input-name');
+    this.selectClient = document.getElementById('select-client');
+    this.btnAddClient = document.getElementById('btn-add-client');
+    this.newClientName = document.getElementById('new-client-name');
     this.inputDate = document.getElementById('input-date');
     this.inputQty = document.getElementById('input-qty');
     this.inputNotes = document.getElementById('input-notes');
-    this.tableBody = document.querySelector('#meals-table tbody');
+    this.mealsContainer = document.getElementById('meals-container');
     this.empty = document.getElementById('empty');
     this.search = document.getElementById('search');
     this.filterDate = document.getElementById('filter-date');
@@ -27,14 +40,83 @@ class LunchApp{
     this.btnExportJson = document.getElementById('btn-export-json');
   }
 
+  loadClients() {
+    try {
+      const raw = localStorage.getItem(CLIENTS_STORAGE_KEY);
+      this.clients = raw ? JSON.parse(raw) : [...DEFAULT_CLIENTS];
+      this.saveClients();
+    } catch (err) {
+      console.error('Error cargando clientes:', err);
+      this.clients = [...DEFAULT_CLIENTS];
+    }
+  }
+
+  saveClients() {
+    localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(this.clients));
+  }
+
+  renderClientSelect() {
+    this.selectClient.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
+    for (const client of this.clients) {
+      const opt = document.createElement('option');
+      opt.value = client;
+      opt.textContent = client;
+      this.selectClient.appendChild(opt);
+    }
+  }
+
+  bindClients() {
+    this.btnAddClient.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isVisible = this.newClientName.style.display !== 'none';
+      if (isVisible) {
+        this.addNewClient();
+      } else {
+        this.newClientName.style.display = 'block';
+        this.newClientName.focus();
+      }
+    });
+
+    this.newClientName.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.addNewClient();
+      }
+    });
+  }
+
+  addNewClient() {
+    const name = this.newClientName.value.trim();
+    if (!name) {
+      alert('Ingresa un nombre de cliente.');
+      return;
+    }
+    if (this.clients.includes(name)) {
+      alert('Este cliente ya existe.');
+      this.newClientName.value = '';
+      return;
+    }
+    this.clients.push(name);
+    this.clients.sort();
+    this.saveClients();
+    this.renderClientSelect();
+    this.selectClient.value = name;
+    this.newClientName.value = '';
+    this.newClientName.style.display = 'none';
+  }
+
   bind(){
-    this.form.addEventListener('submit', e => { e.preventDefault(); this.addOrUpdate(); });
+    this.form.addEventListener('submit', (e) => { e.preventDefault(); this.addOrUpdate(); });
     this.search.addEventListener('input', () => this.render());
     this.filterDate.addEventListener('change', () => this.render());
-    this.btnReset.addEventListener('click', ()=>{ this.search.value=''; this.filterDate.value=''; this.render(); });
-    this.btnClear.addEventListener('click', ()=> this.form.reset());
-    if(this.btnWhatsApp) this.btnWhatsApp.addEventListener('click', ()=> this.shareToWhatsApp());
-    if(this.btnExportJson) this.btnExportJson.addEventListener('click', ()=> this.exportJson());
+    this.btnReset.addEventListener('click', () => {
+      this.search.value = '';
+      this.filterDate.value = '';
+      this.render();
+    });
+    this.btnClear.addEventListener('click', () => this.form.reset());
+    this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
+    this.btnExportJson.addEventListener('click', () => this.exportJson());
   }
 
   load(){
@@ -49,21 +131,20 @@ class LunchApp{
   }
 
   addOrUpdate(){
-    const name = this.inputName.value.trim();
+    const clientName = this.selectClient.value.trim();
     const date = this.inputDate.value;
     const qty = parseInt(this.inputQty.value, 10);
     const notes = this.inputNotes.value.trim();
 
-    if(!name){ alert('El nombre es obligatorio.'); return; }
-    if(!date){ alert('La fecha es obligatoria.'); return; }
-    if(!qty || qty <= 0){ alert('La cantidad debe ser al menos 1.'); return; }
+    if (!clientName) { alert('Selecciona un cliente.'); return; }
+    if (!date) { alert('La fecha es obligatoria.'); return; }
+    if (!qty || qty <= 0) { alert('La cantidad debe ser al menos 1.'); return; }
 
-    // Si existe input hidden para editar, usa data-id
     const editingId = this.form.getAttribute('data-edit-id');
-    if(editingId){
+    if (editingId) {
       const idx = this.meals.findIndex(m => m.id === editingId);
-      if(idx !== -1){
-        this.meals[idx].name = name;
+      if (idx !== -1) {
+        this.meals[idx].name = clientName;
         this.meals[idx].date = date;
         this.meals[idx].qty = qty;
         this.meals[idx].notes = notes;
@@ -75,7 +156,15 @@ class LunchApp{
       }
     }
 
-    const item = { id: cryptoRandomId(), name, date, qty, notes, delivered:false, createdAt: new Date().toISOString() };
+    const item = {
+      id: cryptoRandomId(),
+      name: clientName,
+      date,
+      qty,
+      notes,
+      delivered: false,
+      createdAt: new Date().toISOString()
+    };
     this.meals.push(item);
     this.save();
     this.form.reset();
@@ -83,44 +172,60 @@ class LunchApp{
   }
 
   render(){
-    const q = (this.search.value||'').toLowerCase();
+    const q = (this.search.value || '').toLowerCase();
     const fdate = this.filterDate.value;
-    const list = this.meals.filter(m => {
-      if(q && !m.name.toLowerCase().includes(q)) return false;
-      if(fdate && m.date !== fdate) return false;
-      return true;
-    }).sort((a,b)=> a.date.localeCompare(b.date));
+    const list = this.meals
+      .filter(m => {
+        if (q && !m.name.toLowerCase().includes(q)) return false;
+        if (fdate && m.date !== fdate) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    this.tableBody.innerHTML = '';
-    if(list.length === 0){ this.empty.style.display = 'block'; return; } else { this.empty.style.display = 'none'; }
-
-    for(const m of list){
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = `
-        <td>${escapeHtml(m.name)}</td>
-        <td>${formatDate(m.date)}</td>
-        <td>${m.qty}</td>
-        <td>${escapeHtml(m.notes||'')}</td>
-        <td><span class="badge ${m.delivered ? 'delivered' : 'not-delivered'}">${m.delivered ? 'Sí' : 'No'}</span></td>
-        <td>
-          <button class="btn-icon" data-action="toggle" data-id="${m.id}" title="Marcar entregado/no">🔁</button>
-          <button class="btn-icon" data-action="edit" data-id="${m.id}" title="Editar">✏️</button>
-          <button class="btn-icon btn-delete" data-action="delete" data-id="${m.id}" title="Eliminar">🗑️</button>
-        </td>
-      `;
-
-      this.tableBody.appendChild(tr);
+    this.mealsContainer.innerHTML = '';
+    if (list.length === 0) {
+      this.empty.style.display = 'block';
+      return;
+    } else {
+      this.empty.style.display = 'none';
     }
 
-    // Delegación de eventos en tabla
-    this.tableBody.querySelectorAll('button').forEach(btn => {
+    for (const m of list) {
+      const div = document.createElement('div');
+      div.className = 'meal-item';
+      
+      const badgeClass = m.delivered ? 'badge-delivered' : 'badge-pending';
+      const badgeText = m.delivered ? '✓ Entregado' : '⏳ Pendiente';
+
+      div.innerHTML = `
+        <div class="meal-info">
+          <div class="meal-name">${escapeHtml(m.name)}</div>
+          <div class="meal-details">
+            <div class="meal-detail-item">📅 ${formatDate(m.date)}</div>
+            <div class="meal-detail-item">📦 ${m.qty} pcs</div>
+            <div class="meal-detail-item"><span class="badge ${badgeClass}">${badgeText}</span></div>
+            ${m.notes ? `<div class="meal-detail-item">📝 ${escapeHtml(m.notes)}</div>` : ''}
+          </div>
+        </div>
+        <div class="meal-actions">
+          <button type="button" data-action="toggle" data-id="${m.id}" title="Toggle entrega">�</button>
+          <button type="button" data-action="edit" data-id="${m.id}" title="Editar">✏️</button>
+          <button type="button" data-action="delete" data-id="${m.id}" title="Eliminar">🗑️</button>
+        </div>
+      `;
+
+      this.mealsContainer.appendChild(div);
+    }
+
+    // Delegación de eventos
+    this.mealsContainer.querySelectorAll('button').forEach(btn => {
       btn.onclick = (e) => {
+        e.preventDefault();
         const action = btn.dataset.action;
         const id = btn.dataset.id;
-        if(action === 'toggle') this.toggleDelivered(id);
-        if(action === 'edit') this.fillFormForEdit(id);
-        if(action === 'delete') this.deleteItem(id);
+        if (action === 'toggle') this.toggleDelivered(id);
+        if (action === 'edit') this.fillFormForEdit(id);
+        if (action === 'delete') this.deleteItem(id);
       };
     });
   }
@@ -136,7 +241,7 @@ class LunchApp{
   fillFormForEdit(id){
     const it = this.meals.find(m => m.id === id);
     if(!it) return;
-    this.inputName.value = it.name;
+    this.selectClient.value = it.name;
     this.inputDate.value = it.date;
     this.inputQty.value = it.qty;
     this.inputNotes.value = it.notes || '';
@@ -152,33 +257,38 @@ class LunchApp{
   }
 
   shareToWhatsApp(){
-    const q = (this.search.value||'').toLowerCase();
+    const q = (this.search.value || '').toLowerCase();
     const fdate = this.filterDate.value;
-    const list = this.meals.filter(m => {
-      if(q && !m.name.toLowerCase().includes(q)) return false;
-      if(fdate && m.date !== fdate) return false;
-      return true;
-    }).sort((a,b)=> a.date.localeCompare(b.date));
+    const list = this.meals
+      .filter(m => {
+        if (q && !m.name.toLowerCase().includes(q)) return false;
+        if (fdate && m.date !== fdate) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    if(list.length === 0){ alert('No hay registros para compartir.'); return; }
+    if (list.length === 0) {
+      alert('No hay registros para compartir.');
+      return;
+    }
 
     const lines = ['Relación de almuerzos registrados:'];
-    for(const m of list){
-      lines.push(`- ${m.name} | ${formatDate(m.date)} | Cant: ${m.qty} | Entregado: ${m.delivered ? 'Sí' : 'No'}${m.notes ? ' | Obs: '+m.notes : ''}`);
+    for (const m of list) {
+      lines.push(
+        `- ${m.name} | ${formatDate(m.date)} | Cant: ${m.qty} | Entregado: ${m.delivered ? 'Sí' : 'No'}${m.notes ? ' | Obs: ' + m.notes : ''}`
+      );
     }
     const text = lines.join('\n');
 
     const number = (this.whatsappNumber && this.whatsappNumber.value.trim()) || '';
     let url;
-    if(number){
-      // api.whatsapp.com/send expects phone with country code, no + or 00
-      const clean = number.replace(/[^0-9]/g,'');
+    if (number) {
+      const clean = number.replace(/[^0-9]/g, '');
       url = `https://api.whatsapp.com/send?phone=${clean}&text=${encodeURIComponent(text)}`;
-    }else{
+    } else {
       url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     }
 
-    // Abrir en nueva pestaña; en móvil abrirá la app o web
     window.open(url, '_blank');
   }
 
@@ -201,7 +311,7 @@ function formatDate(d){
   if(!d) return '';
   try{
     const dt = new Date(d + 'T00:00:00');
-    return dt.toLocaleDateString();
+    return dt.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
   }catch(e){ return d; }
 }
 
