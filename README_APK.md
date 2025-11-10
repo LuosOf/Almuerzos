@@ -99,6 +99,8 @@ magick convert icons/icon-512.svg -resize 512x512 icons/icon-512.png
 magick convert icons/icon-192.svg -resize 192x192 icons/icon-192.png
 ```
 
+Nota: He generado PNG *placeholder* automáticamente y los agregué al repo (`icons/icon-192.png`, `icons/icon-512.png`). Estos archivos contienen una versión simple del icono (derivado del SVG). Es recomendable reemplazarlos por PNGs de mayor calidad antes de publicar.
+
 Notas finales
 - El APK generado se puede distribuir directamente (por ejemplo, subir a tu servidor e instalar por link o enviar por USB) y no requiere Play Store.
 - Si quieres agregar funcionalidades nativas (notificaciones, cámara), usa plugins Capacitor.
