@@ -1,0 +1,38 @@
+/* styles.css - Estilos simples y responsive */
+:root{
+  --bg:#f6f8fa;
+  --card:#ffffff;
+  --primary:#2b7cff;
+  --muted:#6b7280;
+  --danger:#e11d48;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#111}
+.app{max-width:960px;margin:24px auto;padding:16px}
+header h1{margin:0;font-size:1.6rem}
+.lead{margin:6px 0 12px;color:var(--muted)}
+.panel{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.03);margin-bottom:12px}
+form label{display:block;margin-bottom:8px}
+.row{display:flex;gap:12px}
+.row label{flex:1}
+input[type=text],input[type=date],input[type=number],input[type=search]{width:100%;padding:8px;border:1px solid #e6e9ee;border-radius:6px}
+.actions{display:flex;gap:8px;margin-top:8px}
+button{background:var(--primary);color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+button.muted{background:#f3f4f6;color:var(--muted)}
+table.meals{width:100%;border-collapse:collapse;margin-top:8px}
+table.meals th,table.meals td{padding:8px;border-bottom:1px solid #f0f2f5;text-align:left}
+.empty{color:var(--muted);padding:8px}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:0.85rem}
+.delivered{background:#dcfce7;color:#166534}
+.not-delivered{background:#fff4e6;color:#92400e;border:1px solid #fde68a}
+.btn-icon{background:transparent;border:0;color:var(--primary);cursor:pointer;padding:4px}
+.btn-delete{color:var(--danger)}
+.footer{text-align:center;color:var(--muted);margin-top:8px}
+@media (max-width:640px){.row{flex-direction:column}}
+
+.share-panel{margin-top:12px;padding-top:8px;border-top:1px dashed #eef2f6}
+.share-panel label{display:block;margin-bottom:8px}
+.share-actions{display:flex;gap:8px;margin-top:6px}
+.share-actions button{padding:8px 10px;border-radius:6px}
+.share-actions .muted{background:#f3f4f6;color:var(--muted)}

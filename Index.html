@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Control de Almuerzos</title>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<main class="app">
+			<header>
+				<h1>Control de Almuerzos</h1>
+				<p class="lead">Registrar y gestionar entregas de almuerzos. Datos guardados en tu navegador.</p>
+			</header>
+
+			<section class="panel">
+				<form id="meal-form">
+					<div class="row">
+						<label>Nombre
+							<input id="input-name" type="text" placeholder="Nombre del beneficiario" required />
+						</label>
+						<label>Fecha
+							<input id="input-date" type="date" required />
+						</label>
+						<label>Cantidad
+							<input id="input-qty" type="number" min="1" value="1" required />
+						</label>
+					</div>
+					<label>Observaciones
+						<input id="input-notes" type="text" placeholder="Opcional" />
+					</label>
+					<div class="actions">
+						<button id="btn-add" type="submit">Agregar almuerzo</button>
+						<button id="btn-clear" type="button" class="muted">Limpiar</button>
+					</div>
+				</form>
+			</section>
+
+			<section class="panel filters">
+				<input id="search" type="search" placeholder="Buscar por nombre..." />
+				<label>Filtrar fecha
+					<input id="filter-date" type="date" />
+				</label>
+						<button id="btn-reset-filters" class="muted">Restablecer filtros</button>
+
+						<div class="share-panel">
+							<label>Número WhatsApp (opcional, formato internacional sin +)
+								<input id="whatsapp-number" type="tel" placeholder="34123456789" />
+							</label>
+							<div class="share-actions">
+								<button id="btn-whatsapp" type="button">Enviar relación a WhatsApp</button>
+								<button id="btn-export-json" type="button" class="muted">Exportar JSON</button>
+							</div>
+							<small class="muted">Se abrirá WhatsApp (app o web) con el mensaje listo para enviar. Por seguridad WhatsApp requiere confirmación manual para enviar.</small>
+						</div>
+			</section>
+
+			<section class="panel list">
+				<h2>Registros</h2>
+				<div id="empty" class="empty">No hay almuerzos registrados.</div>
+				<table id="meals-table" class="meals" aria-live="polite">
+					<thead>
+						<tr><th>Nombre</th><th>Fecha</th><th>Cantidad</th><th>Obs.</th><th>Entregado</th><th>Acciones</th></tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</section>
+
+			<footer class="footer">
+				<small>Aplicación simple para control de almuerzos — Datos locales (localStorage).</small>
+			</footer>
+		</main>
+
+		<script type="module" src="app.js"></script>
+	</body>
+</html>
