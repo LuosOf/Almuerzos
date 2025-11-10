@@ -90,11 +90,11 @@ class LunchApp {
   addNewClient() {
     const name = this.newClientName.value.trim();
     if (!name) {
-      alert('Ingresa un nombre de cliente.');
+      showAlert('Cliente', 'Ingresa un nombre de cliente.', 'warning');
       return;
     }
     if (this.clients.includes(name)) {
-      alert('Este cliente ya existe.');
+      showAlert('Cliente', 'Este cliente ya existe.', 'warning');
       this.newClientName.value = '';
       return;
     }
@@ -145,9 +145,9 @@ class LunchApp {
     const qty = parseInt(this.inputQty.value, 10);
     const notes = this.inputNotes.value.trim();
 
-    if (!clientName) { alert('Selecciona un cliente.'); return; }
-    if (!date) { alert('La fecha es obligatoria.'); return; }
-    if (!qty || qty <= 0) { alert('La cantidad debe ser al menos 1.'); return; }
+  if (!clientName) { showAlert('Formulario', 'Selecciona un cliente.', 'warning'); return; }
+  if (!date) { showAlert('Formulario', 'La fecha es obligatoria.', 'warning'); return; }
+  if (!qty || qty <= 0) { showAlert('Formulario', 'La cantidad debe ser al menos 1.', 'warning'); return; }
 
     const editingId = this.form.getAttribute('data-edit-id');
     if (editingId) {
@@ -161,6 +161,7 @@ class LunchApp {
         this.save();
         this.form.reset();
         this.render();
+        showToast('Registro actualizado', 'success');
         return;
       }
     }
@@ -178,6 +179,7 @@ class LunchApp {
     this.save();
     this.form.reset();
     this.render();
+    showToast('Registro creado', 'success');
   }
 
   render(){
@@ -259,10 +261,29 @@ class LunchApp {
   }
 
   deleteItem(id){
-    if(!confirm('¿Eliminar este registro?')) return;
-    this.meals = this.meals.filter(m => m.id !== id);
-    this.save();
-    this.render();
+    // Usar SweetAlert2 para confirmación
+    if (window.Swal) {
+      Swal.fire({
+        title: 'Eliminar registro',
+        text: '¿Eliminar este registro? Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      }).then(result => {
+        if (result.isConfirmed) {
+          this.meals = this.meals.filter(m => m.id !== id);
+          this.save();
+          this.render();
+          showToast('Registro eliminado', 'success');
+        }
+      });
+    } else {
+      if(!confirm('¿Eliminar este registro?')) return;
+      this.meals = this.meals.filter(m => m.id !== id);
+      this.save();
+      this.render();
+    }
   }
 
   shareToWhatsApp(){
@@ -277,7 +298,7 @@ class LunchApp {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     if (list.length === 0) {
-      alert('No hay registros para compartir.');
+      showAlert('Compartir', 'No hay registros para compartir.', 'info');
       return;
     }
 
@@ -327,6 +348,36 @@ function formatDate(d){
 function escapeHtml(s){
   if(!s) return '';
   return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+
+// SweetAlert helpers
+function showToast(message, icon='success'){
+  try{
+    if (window.Swal) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: icon,
+        title: message,
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true
+      });
+      return;
+    }
+  }catch(e){}
+  // fallback
+  try{ alert(message); }catch(e){}
+}
+
+function showAlert(title, text, icon='warning'){
+  try{
+    if (window.Swal) {
+      Swal.fire({ title: title, text: text, icon: icon });
+      return;
+    }
+  }catch(e){}
+  try{ alert(text); }catch(e){}
 }
 
 // Inicializar cuando DOM esté listo
