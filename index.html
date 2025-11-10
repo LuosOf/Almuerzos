@@ -11,7 +11,8 @@
       <!-- Header -->
       <header class="app-header">
         <div class="header-content">
-          <h1>🍽️ Control de Almuerzos</h1>
+              <h1>🍽️ Control de Almuerzos</h1>
+              <button id="btn-install" class="btn btn-install" style="display:none;">Instalar app</button>
           <p>Registra y gestiona entregas</p>
         </div>
       </header>
@@ -103,6 +104,12 @@
         <small>Control de Almuerzos • Datos guardados localmente</small>
       </footer>
     </div>
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <!-- SweetAlert2 para alerts/confirm modernos -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

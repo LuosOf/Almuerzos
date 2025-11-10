@@ -20,6 +20,21 @@ class LunchApp {
     this.renderClientSelect();
     this.bind();
     this.render();
+
+    // Register service worker for PWA (if supported)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        console.info('ServiceWorker registrado', reg);
+      }).catch(err => console.warn('ServiceWorker registro fallido:', err));
+    }
+
+    // beforeinstallprompt handling
+    this.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      if (this.btnInstall) this.btnInstall.style.display = 'inline-block';
+    });
   }
 
   cache() {
@@ -40,6 +55,7 @@ class LunchApp {
     this.whatsappNumber = document.getElementById('whatsapp-number');
     this.btnWhatsApp = document.getElementById('btn-whatsapp');
     this.btnExportJson = document.getElementById('btn-export-json');
+    this.btnInstall = document.getElementById('btn-install');
   }
 
   loadClients() {
@@ -122,6 +138,24 @@ class LunchApp {
     this.btnClear.addEventListener('click', () => this.form.reset());
     this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
     this.btnExportJson.addEventListener('click', () => this.exportJson());
+    if (this.btnInstall) {
+      this.btnInstall.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (this.deferredPrompt) {
+          this.deferredPrompt.prompt();
+          const choice = await this.deferredPrompt.userChoice;
+          if (choice.outcome === 'accepted') {
+            showToast('Instalación aceptada', 'success');
+          } else {
+            showToast('Instalación cancelada', 'info');
+          }
+          this.deferredPrompt = null;
+          this.btnInstall.style.display = 'none';
+        } else {
+          showAlert('Instalar', 'No hay prompt de instalación disponible', 'info');
+        }
+      });
+    }
   }
 
   load(){
