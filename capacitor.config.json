@@ -1,0 +1,6 @@
+{
+  "appId": "com.luosof.almuerzos",
+  "appName": "Almuerzos",
+  "webDir": "./",
+  "bundledWebRuntime": false
+}
