@@ -312,12 +312,15 @@ class LunchApp {
       return;
     }
 
-    const lines = ['Relación de almuerzos registrados:'];
+    // Mensaje simplificado y amigable para clientes
+    // Ejemplo por línea: "Luis — 10 nov — 2"
+    const lines = ['Pedidos de almuerzo:'];
     for (const m of list) {
-      lines.push(
-        `- ${m.name} | ${formatDate(m.date)} | Cant: ${m.qty} | Entregado: ${m.delivered ? 'Sí' : 'No'}${m.notes ? ' | Obs: ' + m.notes : ''}`
-      );
+      const note = m.notes ? ` — ${m.notes}` : '';
+      lines.push(`${m.name} — ${formatShortDate(m.date)} — ${m.qty}${note}`);
     }
+    lines.push('');
+    lines.push(`Total pedidos: ${list.length}`);
     const text = lines.join('\n');
 
     const number = (this.whatsappNumber && this.whatsappNumber.value.trim()) || '';
@@ -352,6 +355,14 @@ function formatDate(d){
   try{
     const dt = new Date(d + 'T00:00:00');
     return dt.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+  }catch(e){ return d; }
+}
+
+function formatShortDate(d){
+  if(!d) return '';
+  try{
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   }catch(e){ return d; }
 }
 
