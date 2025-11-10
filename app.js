@@ -219,7 +219,7 @@ class LunchApp {
           </div>
         </div>
         <div class="meal-actions">
-          <button type="button" data-action="toggle" data-id="${m.id}" title="Toggle entrega">�</button>
+          <button type="button" data-action="toggle" data-id="${m.id}" title="${m.delivered ? 'Marcar como no entregado' : 'Marcar como entregado'}">${m.delivered ? '✅' : '📦'}</button>
           <button type="button" data-action="edit" data-id="${m.id}" title="Editar">✏️</button>
           <button type="button" data-action="delete" data-id="${m.id}" title="Eliminar">🗑️</button>
         </div>
