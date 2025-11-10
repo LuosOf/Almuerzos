@@ -8,6 +8,34 @@ const DEFAULT_CLIENTS = [
   'Jorsy', 'Wilder', 'Mayra', 'Lio', 'Jose Peña'
 ];
 
+// -------------------------
+// Firebase config / init
+// -------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyAXJ9VijZhVBJLncFK1ZALxvtPf9F9dAiQ",
+  authDomain: "almuerzos-sync.firebaseapp.com",
+  projectId: "almuerzos-sync",
+  storageBucket: "almuerzos-sync.firebasestorage.app",
+  messagingSenderId: "607688928005",
+  appId: "1:607688928005:web:ba8e76475fa865f1bb256c"
+};
+
+let FIRESTORE_AVAILABLE = false;
+let db = null;
+try {
+  if (window.firebase) {
+    // inicializar sólo si no se ha inicializado antes
+    if (!firebase.apps || firebase.apps.length === 0) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+    FIRESTORE_AVAILABLE = true;
+    console.info('Firebase inicializado: Firestore disponible.');
+  }
+} catch (e) {
+  console.warn('Firebase no está disponible o no se pudo inicializar:', e);
+}
+
 class LunchApp {
   constructor() {
     this.meals = [];
@@ -17,6 +45,10 @@ class LunchApp {
     this.bindClients();
     this.load();
     this.renderClientSelect();
+    // Si Firestore está disponible, iniciar la sincronización en tiempo real
+    if (FIRESTORE_AVAILABLE) {
+      this.startRealtimeSync();
+    }
     this.bind();
     this.render();
   }
@@ -127,7 +159,29 @@ class LunchApp {
   }
 
   save(){
+    // seguir guardando localmente como fallback/offline cache
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.meals));
+  }
+
+  // Inicia listener en tiempo real para la colección 'meals' en Firestore
+  startRealtimeSync(){
+    try{
+      this.remoteMealsRef = db.collection('meals');
+      this.remoteUnsubscribe = this.remoteMealsRef.onSnapshot(snapshot => {
+        const meals = [];
+        snapshot.forEach(doc => {
+          meals.push({ id: doc.id, ...doc.data() });
+        });
+        this.meals = meals;
+        // persistir caché local para ver offline
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.meals));
+        this.render();
+      }, err => {
+        console.error('Error en snapshot Firestore:', err);
+      });
+    }catch(e){
+      console.error('No se pudo iniciar sincronización en tiempo real:', e);
+    }
   }
 
   addOrUpdate(){
@@ -142,20 +196,35 @@ class LunchApp {
 
     const editingId = this.form.getAttribute('data-edit-id');
     if (editingId) {
-      const idx = this.meals.findIndex(m => m.id === editingId);
-      if (idx !== -1) {
-        this.meals[idx].name = clientName;
-        this.meals[idx].date = date;
-        this.meals[idx].qty = qty;
-        this.meals[idx].notes = notes;
-        delete this.form.dataset.editId;
-        this.save();
-        this.form.reset();
-        this.render();
+      // Update existing
+      if (FIRESTORE_AVAILABLE && db) {
+        db.collection('meals').doc(editingId).update({
+          name: clientName,
+          date,
+          qty,
+          notes
+        }).then(() => {
+          delete this.form.dataset.editId;
+          this.form.reset();
+        }).catch(err => console.error('Error actualizando en Firestore:', err));
         return;
+      } else {
+        const idx = this.meals.findIndex(m => m.id === editingId);
+        if (idx !== -1) {
+          this.meals[idx].name = clientName;
+          this.meals[idx].date = date;
+          this.meals[idx].qty = qty;
+          this.meals[idx].notes = notes;
+          delete this.form.dataset.editId;
+          this.save();
+          this.form.reset();
+          this.render();
+          return;
+        }
       }
     }
 
+    // Crear nuevo
     const item = {
       id: cryptoRandomId(),
       name: clientName,
@@ -165,10 +234,18 @@ class LunchApp {
       delivered: false,
       createdAt: new Date().toISOString()
     };
-    this.meals.push(item);
-    this.save();
-    this.form.reset();
-    this.render();
+
+    if (FIRESTORE_AVAILABLE && db) {
+      // Usar id propio para facilitar referencias
+      db.collection('meals').doc(item.id).set(item).then(() => {
+        this.form.reset();
+      }).catch(err => console.error('Error escribiendo en Firestore:', err));
+    } else {
+      this.meals.push(item);
+      this.save();
+      this.form.reset();
+      this.render();
+    }
   }
 
   render(){
@@ -233,6 +310,19 @@ class LunchApp {
   toggleDelivered(id){
     const it = this.meals.find(m => m.id === id);
     if(!it) return;
+    // If using Firestore, update the single field remotely
+    if (FIRESTORE_AVAILABLE && db) {
+      const newVal = !it.delivered;
+      db.collection('meals').doc(id).update({ delivered: newVal }).catch(err => {
+        console.error('Error actualizando delivered en Firestore:', err);
+      });
+      // local UI will update when snapshot fires; optimistically update now
+      it.delivered = !it.delivered;
+      this.render();
+      return;
+    }
+
+    // fallback local
     it.delivered = !it.delivered;
     this.save();
     this.render();
@@ -251,6 +341,14 @@ class LunchApp {
 
   deleteItem(id){
     if(!confirm('¿Eliminar este registro?')) return;
+    if (FIRESTORE_AVAILABLE && db) {
+      db.collection('meals').doc(id).delete().catch(err => console.error('Error eliminando en Firestore:', err));
+      // UI will update on snapshot; optionally optimistically remove
+      this.meals = this.meals.filter(m => m.id !== id);
+      this.render();
+      return;
+    }
+
     this.meals = this.meals.filter(m => m.id !== id);
     this.save();
     this.render();

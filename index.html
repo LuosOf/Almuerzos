@@ -100,10 +100,13 @@
 
       <!-- Footer -->
       <footer class="app-footer">
-        <small>Control de Almuerzos • Datos guardados localmente</small>
+        <small>Control de Almuerzos • Datos guardados localmente y sincronizables con Firebase (si está configurado)</small>
       </footer>
     </div>
 
+    <!-- Firebase (compat) - usado para sincronización en tiempo real con Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>
