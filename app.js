@@ -182,6 +182,11 @@ class LunchApp {
         this.render();
       }, err => {
         console.error('Error en snapshot Firestore:', err);
+        // Si hay error en snapshot (por ejemplo reglas), desactivar el uso de Firestore
+        try { if (this.remoteUnsubscribe) this.remoteUnsubscribe(); } catch(e){}
+        FIRESTORE_AVAILABLE = false;
+        db = null;
+        console.warn('Firestore desactivado por error en snapshot; usando localStorage como fallback.');
       });
     }catch(e){
       console.error('No se pudo iniciar sincronización en tiempo real:', e);
@@ -210,7 +215,22 @@ class LunchApp {
         }).then(() => {
           delete this.form.dataset.editId;
           this.form.reset();
-        }).catch(err => console.error('Error actualizando en Firestore:', err));
+        }).catch(err => {
+          console.error('Error actualizando en Firestore:', err);
+          // Fallback: actualizar localmente y desactivar Firestore para evitar más errores
+          const idx = this.meals.findIndex(m => m.id === editingId);
+          if (idx !== -1) {
+            this.meals[idx].name = clientName;
+            this.meals[idx].date = date;
+            this.meals[idx].qty = qty;
+            this.meals[idx].notes = notes;
+            this.save();
+            this.render();
+          }
+          FIRESTORE_AVAILABLE = false;
+          db = null;
+          alert('No se pudo actualizar en Firestore; se guardó localmente. Revisa las reglas de Firestore o la conexión.');
+        });
         return;
       } else {
         const idx = this.meals.findIndex(m => m.id === editingId);
@@ -243,7 +263,17 @@ class LunchApp {
       // Usar id propio para facilitar referencias
       db.collection('meals').doc(item.id).set(item).then(() => {
         this.form.reset();
-      }).catch(err => console.error('Error escribiendo en Firestore:', err));
+      }).catch(err => {
+        console.error('Error escribiendo en Firestore:', err);
+        // Fallback local
+        this.meals.push(item);
+        this.save();
+        this.render();
+        this.form.reset();
+        FIRESTORE_AVAILABLE = false;
+        db = null;
+        alert('No se pudo guardar en Firestore; se guardó localmente. Revisa las reglas/permiso de Firestore.');
+      });
     } else {
       this.meals.push(item);
       this.save();
@@ -316,13 +346,21 @@ class LunchApp {
     if(!it) return;
     // If using Firestore, update the single field remotely
     if (FIRESTORE_AVAILABLE && db) {
-      const newVal = !it.delivered;
+      const previous = it.delivered;
+      const newVal = !previous;
+      // optimistic update in UI
+      it.delivered = newVal;
+      this.render();
       db.collection('meals').doc(id).update({ delivered: newVal }).catch(err => {
         console.error('Error actualizando delivered en Firestore:', err);
+        // Revert optimistic change and fallback to local storage
+        it.delivered = previous;
+        try { this.save(); } catch(e){}
+        this.render();
+        FIRESTORE_AVAILABLE = false;
+        db = null;
+        alert('No se pudo actualizar en Firestore; se usará localStorage temporalmente. Revisa las reglas/permiso de Firestore.');
       });
-      // local UI will update when snapshot fires; optimistically update now
-      it.delivered = !it.delivered;
-      this.render();
       return;
     }
 
@@ -346,8 +384,19 @@ class LunchApp {
   deleteItem(id){
     if(!confirm('¿Eliminar este registro?')) return;
     if (FIRESTORE_AVAILABLE && db) {
-      db.collection('meals').doc(id).delete().catch(err => console.error('Error eliminando en Firestore:', err));
-      // UI will update on snapshot; optionally optimistically remove
+      db.collection('meals').doc(id).delete().then(() => {
+        // UI will update on snapshot
+      }).catch(err => {
+        console.error('Error eliminando en Firestore:', err);
+        // Fallback: eliminar localmente
+        this.meals = this.meals.filter(m => m.id !== id);
+        this.save();
+        this.render();
+        FIRESTORE_AVAILABLE = false;
+        db = null;
+        alert('No se pudo eliminar en Firestore; se eliminó localmente. Revisa las reglas/permiso de Firestore.');
+      });
+      // Optimistic UI removal while waiting for remote
       this.meals = this.meals.filter(m => m.id !== id);
       this.render();
       return;
