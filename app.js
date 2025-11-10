@@ -35,6 +35,16 @@ class LunchApp {
       this.deferredPrompt = e;
       if (this.btnInstall) this.btnInstall.style.display = 'inline-block';
     });
+    // Detect iOS (Safari) where beforeinstallprompt doesn't fire; show install button to show instructions
+    try{
+      const ua = navigator.userAgent || '';
+      const isIos = /iphone|ipad|ipod/i.test(ua);
+      const isInStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      if (isIos && !isInStandalone && this.btnInstall) {
+        // show the install/help button so user can add to Home Screen manually
+        this.btnInstall.style.display = 'inline-block';
+      }
+    }catch(e){}
   }
 
   cache() {
@@ -152,7 +162,8 @@ class LunchApp {
           this.deferredPrompt = null;
           this.btnInstall.style.display = 'none';
         } else {
-          showAlert('Instalar', 'No hay prompt de instalación disponible', 'info');
+          // show manual install instructions (iOS or browsers that don't fire beforeinstallprompt)
+          showInstallInstructions();
         }
       });
     }
@@ -433,6 +444,41 @@ function showAlert(title, text, icon='warning'){
     }
   }catch(e){}
   try{ alert(text); }catch(e){}
+}
+
+function showInstallInstructions(){
+  const html = `
+    <div style="text-align:left;line-height:1.4">
+      <h3>Agregar a la pantalla de inicio</h3>
+      <p>Sigue estos pasos para crear un acceso directo con el icono del proyecto:</p>
+      <h4>Android (Chrome)</h4>
+      <ol>
+        <li>Abre el menú (⋮) en Chrome.</li>
+        <li>Selecciona "Agregar a pantalla de inicio".</li>
+        <li>Confirma y el acceso aparecerá en tu inicio.</li>
+      </ol>
+      <h4>iPhone / iPad (Safari)</h4>
+      <ol>
+        <li>Toca el botón de compartir (cuadro con flecha hacia arriba).</li>
+        <li>Busca y selecciona "Añadir a pantalla de inicio".</li>
+        <li>Confirma; el acceso se añadirá con el icono del sitio.</li>
+      </ol>
+      <p>El acceso corto abrirá la app en modo "aplicación" (sin barra de navegador) y usará el icono que añadimos.</p>
+    </div>
+  `;
+  try{
+    if (window.Swal) {
+      Swal.fire({
+        title: 'Instalar app',
+        html: html,
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: 500
+      });
+      return;
+    }
+  }catch(e){}
+  alert('Sigue las opciones de tu navegador para "Agregar a pantalla de inicio".');
 }
 
 // Inicializar cuando DOM esté listo
