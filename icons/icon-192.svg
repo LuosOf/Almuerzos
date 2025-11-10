@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 24 24"><rect width="100%" height="100%" fill="#ffffff"/><circle cx="12" cy="8" r="3" fill="#ff8a65"/><rect x="6" y="12" width="12" height="6" rx="1" fill="#ff7043"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 24 24">
+	<rect width="100%" height="100%" fill="#ffffff"/>
+	<!-- Plato -->
+	<circle cx="12" cy="11" r="6" fill="#fff8e1" stroke="#ff8a65" stroke-width="0.6" />
+	<circle cx="12" cy="11" r="3.2" fill="#fff" />
+	<!-- Tenedor -->
+	<g transform="translate(16,6) rotate(25)">
+		<rect x="0" y="0" width="0.7" height="6" fill="#6d4c41" rx="0.15" />
+		<rect x="-0.6" y="0" width="1.9" height="0.7" fill="#6d4c41" rx="0.15" />
+		<rect x="-0.6" y="1" width="0.3" height="3" fill="#fff8e1" />
+	</g>
+</svg>
