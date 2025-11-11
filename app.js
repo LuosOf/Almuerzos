@@ -57,6 +57,7 @@ class LunchApp {
   this.btnMenu = document.getElementById('btn-menu');
   this.sideNav = document.getElementById('side-nav');
     this.btnGenerateBoleta = document.getElementById('btn-generate-boleta');
+    this.btnClearBoletas = document.getElementById('btn-clear-boletas');
     this.boletasContainer = document.getElementById('boletas-container');
     this.drawerOverlay = document.getElementById('drawer-overlay');
   }
@@ -215,6 +216,9 @@ class LunchApp {
       }
     if (this.btnGenerateBoleta) {
       this.btnGenerateBoleta.addEventListener('click', () => this.generateBoletaForLastPeriod());
+    }
+    if (this.btnClearBoletas) {
+      this.btnClearBoletas.addEventListener('click', () => this.clearBoletas());
     }
 
     // when client selected, fill whatsappNumber if known
@@ -578,6 +582,17 @@ class LunchApp {
 
   saveBoletas(){
     localStorage.setItem(BOLETAS_KEY, JSON.stringify(this.boletas));
+  }
+
+  clearBoletas(){
+    showAlert('¿Limpiar todas las boletas?', 'Esta acción eliminará permanentemente todas las boletas generadas.', 'warning', ['Cancelar', 'Limpiar'], (idx) => {
+      if (idx === 1) {
+        this.boletas = [];
+        this.saveBoletas();
+        this.renderBoletas();
+        showToast('✅ Boletas limpiadas correctamente', 'success');
+      }
+    });
   }
 
   // Comprueba si han pasado 15 días desde la última boleta; si es así, genera nuevas boletas
