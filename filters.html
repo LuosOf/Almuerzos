@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Filtros - Almuerzos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="header-inner">
+          <button id="btn-menu" class="hamburger" aria-label="Abrir menú">☰</button>
+          <div class="header-content">
+            <h1>🍽️ Control de Almuerzos</h1>
+            <p>Filtros</p>
+          </div>
+        </div>
+        <nav id="side-nav" class="side-nav" aria-hidden="true">
+          <ul>
+            <li><a href="new.html">Nuevo registro</a></li>
+            <li><a href="filters.html">Filtros</a></li>
+            <li><a href="share.html">Compartir</a></li>
+            <li><a href="boletas.html">Boletas</a></li>
+            <li><a href="list.html">Registros</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main class="app-main">
+        <section class="card filters-card">
+          <h3>Filtros</h3>
+          <div class="filters-grid">
+            <div class="filter-item">
+              <input id="search" type="search" placeholder="🔍 Buscar cliente..." />
+            </div>
+            <div class="filter-item">
+              <input id="filter-date" type="date" />
+            </div>
+            <button id="btn-reset-filters" class="btn btn-tertiary">Restablecer</button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <small>Control de Almuerzos • Datos guardados localmente</small>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

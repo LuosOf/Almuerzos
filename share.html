@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compartir - Almuerzos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="header-inner">
+          <button id="btn-menu" class="hamburger" aria-label="Abrir menú">☰</button>
+          <div class="header-content">
+            <h1>🍽️ Control de Almuerzos</h1>
+            <p>Compartir</p>
+          </div>
+        </div>
+        <nav id="side-nav" class="side-nav" aria-hidden="true">
+          <ul>
+            <li><a href="new.html">Nuevo registro</a></li>
+            <li><a href="filters.html">Filtros</a></li>
+            <li><a href="share.html">Compartir</a></li>
+            <li><a href="boletas.html">Boletas</a></li>
+            <li><a href="list.html">Registros</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main class="app-main">
+        <section class="card share-card">
+          <h3>Compartir</h3>
+          <div class="share-form">
+            <input id="whatsapp-number" type="tel" placeholder="Número WhatsApp (opcional)" />
+            <button id="btn-whatsapp" type="button" class="btn btn-whatsapp">📱 Enviar a WhatsApp</button>
+            <button id="btn-export-json" type="button" class="btn btn-tertiary">📥 Exportar JSON</button>
+            <button id="btn-import-json" type="button" class="btn btn-tertiary">📤 Importar JSON</button>
+            <input id="file-import" type="file" accept="application/json" style="display:none" />
+          </div>
+          <small class="help-text">Se abrirá WhatsApp con el mensaje listo. Debes confirmar el envío manualmente.</small>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <small>Control de Almuerzos • Datos guardados localmente</small>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

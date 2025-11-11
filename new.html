@@ -3,19 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Control de Almuerzos</title>
+    <title>Nuevo Registro - Almuerzos</title>
     <link rel="stylesheet" href="styles.css" />
-    
   </head>
   <body>
     <div class="app-container">
-      <!-- Header -->
       <header class="app-header">
         <div class="header-inner">
           <button id="btn-menu" class="hamburger" aria-label="Abrir menú">☰</button>
           <div class="header-content">
             <h1>🍽️ Control de Almuerzos</h1>
-            <p>Registra y gestiona entregas</p>
+            <p>Nuevo Registro</p>
           </div>
         </div>
         <nav id="side-nav" class="side-nav" aria-hidden="true">
@@ -29,15 +27,10 @@
         </nav>
       </header>
 
-      <!-- Main Content -->
       <main class="app-main">
-        
-  <!-- Formulario de registro -->
-  <section id="section-new" class="card form-card">
+        <section class="card form-card">
           <h2>Nuevo Registro</h2>
           <form id="meal-form">
-            
-            <!-- Cliente -->
             <div class="form-group">
               <label for="select-client">Cliente *</label>
               <div class="client-select-wrapper">
@@ -50,7 +43,6 @@
                 <input type="tel" id="new-client-phone" placeholder="Teléfono (opcional)" style="display:none; width:35%; margin-left:4px;" />
             </div>
 
-            <!-- Fecha y Cantidad en fila -->
             <div class="form-row">
               <div class="form-group">
                 <label for="input-date">Fecha *</label>
@@ -62,79 +54,24 @@
               </div>
             </div>
 
-            <!-- Observaciones -->
             <div class="form-group">
               <label for="input-notes">Observaciones</label>
               <input id="input-notes" type="text" placeholder="Notas opcionales" />
             </div>
 
-            <!-- Botones de acción -->
             <div class="form-actions">
               <button id="btn-add" type="submit" class="btn btn-primary">Registrar</button>
               <button id="btn-clear" type="button" class="btn btn-secondary">Limpiar</button>
             </div>
           </form>
         </section>
-
-  <!-- Filtros y búsqueda -->
-  <section id="section-filters" class="card filters-card">
-          <h3>Filtros</h3>
-          <div class="filters-grid">
-            <div class="filter-item">
-              <input id="search" type="search" placeholder="🔍 Buscar cliente..." />
-            </div>
-            <div class="filter-item">
-              <input id="filter-date" type="date" />
-            </div>
-            <button id="btn-reset-filters" class="btn btn-tertiary">Restablecer</button>
-          </div>
-        </section>
-
-  <!-- Compartir a WhatsApp -->
-  <section id="section-share" class="card share-card">
-          <h3>Compartir</h3>
-          <div class="share-form">
-            <input id="whatsapp-number" type="tel" placeholder="Número WhatsApp (opcional)" />
-            <button id="btn-whatsapp" type="button" class="btn btn-whatsapp">📱 Enviar a WhatsApp</button>
-            <button id="btn-export-json" type="button" class="btn btn-tertiary">📥 Exportar JSON</button>
-            <button id="btn-import-json" type="button" class="btn btn-tertiary">📤 Importar JSON</button>
-            <input id="file-import" type="file" accept="application/json" style="display:none" />
-          </div>
-          <small class="help-text">Se abrirá WhatsApp con el mensaje listo. Debes confirmar el envío manualmente.</small>
-        </section>
-
-  <!-- Boletas (generación cada 15 días + manual) -->
-  <section id="section-boletas" class="card boletas-card">
-          <h3>Boletas</h3>
-          <div class="boletas-actions">
-            <button id="btn-generate-boleta" type="button" class="btn btn-primary">Generar boleta ahora (últimos 15 días)</button>
-          </div>
-          <div id="boletas-container" class="boletas-list">
-            <!-- listado de boletas generadas -->
-          </div>
-          <small class="help-text">Las boletas también se generan automáticamente cada 15 días al abrir la app.</small>
-        </section>
-
-        <!-- Import removed: import UI was removed per user request -->
-
-  <!-- Lista de registros -->
-  <section id="section-list" class="card list-card">
-          <h2>Registros</h2>
-          <div id="empty" class="empty-state">
-            <p>📭 No hay registros. ¡Agrega uno nuevo!</p>
-          </div>
-          <div id="meals-container" class="meals-list"></div>
-        </section>
-
       </main>
 
-      <!-- Footer -->
       <footer class="app-footer">
         <small>Control de Almuerzos • Datos guardados localmente</small>
       </footer>
     </div>
 
-    <!-- SweetAlert2 para alerts/confirm modernos -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="module" src="app.js"></script>
   </body>

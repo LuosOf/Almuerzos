@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boletas - Almuerzos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="header-inner">
+          <button id="btn-menu" class="hamburger" aria-label="Abrir menú">☰</button>
+          <div class="header-content">
+            <h1>🍽️ Control de Almuerzos</h1>
+            <p>Boletas</p>
+          </div>
+        </div>
+        <nav id="side-nav" class="side-nav" aria-hidden="true">
+          <ul>
+            <li><a href="new.html">Nuevo registro</a></li>
+            <li><a href="filters.html">Filtros</a></li>
+            <li><a href="share.html">Compartir</a></li>
+            <li><a href="boletas.html">Boletas</a></li>
+            <li><a href="list.html">Registros</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <main class="app-main">
+        <section class="card boletas-card">
+          <h3>Boletas</h3>
+          <div class="boletas-actions">
+            <button id="btn-generate-boleta" type="button" class="btn btn-primary">Generar boleta ahora (últimos 15 días)</button>
+          </div>
+          <div id="boletas-container" class="boletas-list">
+            <!-- listado de boletas generadas -->
+          </div>
+          <small class="help-text">Las boletas se actualizan automáticamente según los registros.</small>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <small>Control de Almuerzos • Datos guardados localmente</small>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -149,16 +149,16 @@ class LunchApp {
     if (this.btnAdd) {
       this.btnAdd.addEventListener('click', (e) => { e.preventDefault(); this.addOrUpdate(); });
     }
-    this.search.addEventListener('input', () => this.render());
-    this.filterDate.addEventListener('change', () => this.render());
-    this.btnReset.addEventListener('click', () => {
-      this.search.value = '';
-      this.filterDate.value = '';
+    if (this.search) this.search.addEventListener('input', () => this.render());
+    if (this.filterDate) this.filterDate.addEventListener('change', () => this.render());
+    if (this.btnReset) this.btnReset.addEventListener('click', () => {
+      if (this.search) this.search.value = '';
+      if (this.filterDate) this.filterDate.value = '';
       this.render();
     });
-    this.btnClear.addEventListener('click', () => this.form.reset());
-    this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
-    this.btnExportJson.addEventListener('click', () => this.exportJson());
+    if (this.btnClear && this.form) this.btnClear.addEventListener('click', () => this.form.reset());
+    if (this.btnWhatsApp) this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
+    if (this.btnExportJson) this.btnExportJson.addEventListener('click', () => this.exportJson());
       // menu toggle
       if (this.btnMenu && this.sideNav) {
         this.btnMenu.addEventListener('click', () => {
@@ -177,10 +177,10 @@ class LunchApp {
     }
 
     // when client selected, fill whatsappNumber if known
-    this.selectClient.addEventListener('change', () => {
+    if (this.selectClient) this.selectClient.addEventListener('change', () => {
       const name = this.selectClient.value;
       const c = this.clients.find(x => x.name === name);
-      if (c && c.phone) this.whatsappNumber.value = c.phone; 
+      if (c && c.phone && this.whatsappNumber) this.whatsappNumber.value = c.phone; 
     });
     // no install button handling (app stays as web app)
   }
@@ -195,6 +195,8 @@ class LunchApp {
   save(){
     // seguir guardando localmente como fallback/offline cache
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.meals));
+    // sync boletas summaries with current meals
+    try{ this.syncBoletasWithMeals(); this.saveBoletas(); this.updateMenuVisibility(); }catch(e){}
   }
 
   // Inicia listener en tiempo real para la colección 'meals' en Firestore
@@ -315,7 +317,40 @@ class LunchApp {
   toggleDelivered(id){
     const it = this.meals.find(m => m.id === id);
     if(!it) return;
-    it.delivered = !it.delivered;
+    // if item locked (confirmed delivered) do not allow changes
+    if (it.locked) { showAlert('Entrega', 'Esta entrega ya fue confirmada y no puede modificarse.', 'info'); return; }
+    // if currently not delivered, ask confirm
+    if (!it.delivered) {
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Confirmar entrega',
+          text: `¿Confirmas que ${it.name} recibió el almuerzo del ${it.date}?`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, confirmar',
+          cancelButtonText: 'Cancelar'
+        }).then(res => {
+          if (res.isConfirmed) {
+            it.delivered = true;
+            it.locked = true;
+            this.save();
+            this.render();
+            showToast('Entrega confirmada', 'success');
+          }
+        });
+      } else {
+        if (confirm(`¿Confirmas que ${it.name} recibió el almuerzo del ${it.date}?`)) {
+          it.delivered = true;
+          it.locked = true;
+          this.save();
+          this.render();
+          showToast('Entrega confirmada', 'success');
+        }
+      }
+      return;
+    }
+    // if it's delivered but not locked, allow toggling back to pending
+    it.delivered = false;
     this.save();
     this.render();
   }
@@ -323,6 +358,7 @@ class LunchApp {
   fillFormForEdit(id){
     const it = this.meals.find(m => m.id === id);
     if(!it) return;
+    if (it.locked) { showAlert('Editar', 'Este registro fue confirmado como entregado y no puede editarse.', 'info'); return; }
     this.selectClient.value = it.name;
     this.inputDate.value = it.date;
     this.inputQty.value = it.qty;
@@ -333,6 +369,9 @@ class LunchApp {
 
   deleteItem(id){
     // Usar SweetAlert2 para confirmación
+    const it = this.meals.find(m => m.id === id);
+    if (!it) return;
+    if (it.locked) { showAlert('Eliminar', 'Este registro fue confirmado como entregado y no puede eliminarse.', 'info'); return; }
     if (window.Swal) {
       Swal.fire({
         title: 'Eliminar registro',
@@ -448,6 +487,43 @@ class LunchApp {
     a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
     a.download = 'almuerzos.json';
     a.click();
+  }
+
+  // Recalcula las boletas existentes para reflejar los registros actuales
+  syncBoletasWithMeals(){
+    try{
+      if (!this.boletas || this.boletas.length === 0) return;
+      for (const b of this.boletas) {
+        const start = new Date(b.periodStart + 'T00:00:00');
+        const end = new Date(b.periodEnd + 'T00:00:00');
+        const items = this.meals.filter(m => {
+          const md = new Date(m.date + 'T00:00:00');
+          return md >= start && md <= end;
+        });
+        const summaryByClient = {};
+        items.forEach(m => {
+          if (!summaryByClient[m.name]) summaryByClient[m.name] = { name: m.name, qty: 0, items: [] };
+          summaryByClient[m.name].qty += (m.qty || 0);
+          summaryByClient[m.name].items.push({ date: m.date, qty: m.qty, notes: m.notes });
+        });
+        b.summary = Object.values(summaryByClient);
+        b.totalOrders = items.length;
+        b.totalQty = items.reduce((s,it)=>s+(it.qty||0),0);
+      }
+      this.renderBoletas();
+    }catch(err){ console.error('Error sincronizando boletas:', err); }
+  }
+
+  // Ocultar/mostrar enlace de boletas en el menú según existencia de boletas
+  updateMenuVisibility(){
+    try{
+      const hasBoletas = (this.boletas && this.boletas.length > 0);
+      const nav = document.getElementById('side-nav');
+      if (!nav) return;
+      const link = nav.querySelector('a[href="boletas.html"]') || nav.querySelector('a[href="#section-boletas"]');
+      if (!link) return;
+      link.style.display = hasBoletas ? '' : 'none';
+    }catch(e){}
   }
 
   /* Boletas: carga/guardado, generación automática (cada 15 días) y UI */
