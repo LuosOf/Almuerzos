@@ -572,6 +572,7 @@ class LunchApp {
     try{
       const raw = localStorage.getItem(BOLETAS_KEY);
       this.boletas = raw ? JSON.parse(raw) : [];
+      // No auto-generate on load - only when user explicitly clicks button or on days 1/15
     }catch(err){ console.error('Error cargando boletas:', err); this.boletas = []; }
   }
 
@@ -580,12 +581,13 @@ class LunchApp {
   }
 
   // Comprueba si han pasado 15 días desde la última boleta; si es así, genera nuevas boletas
+  // Comprueba si han pasado 15 días desde la última boleta; si es así, genera nuevas boletas
   checkAutoGenerateBoletas(){
     try{
       const today = new Date();
       const day = today.getDate();
-      // If no boletas exist, do nothing by default (user asked not to show empty). We'll generate only on scheduled days.
-      // Scheduled generation on day 1 and 15: create boleta for [today-14 .. today]
+      // Solo generar automáticamente en días 1 y 15 si no existe boleta para ese período
+      // De lo contrario, esperar a que el usuario genere manualmente
       if (day === 1 || day === 15) {
         const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const start = new Date(end);
@@ -599,6 +601,7 @@ class LunchApp {
           this.showBoletaPreviewAndMaybeGenerate(start, end);
         }
       }
+      // Do NOT auto-generate on other days - user must click the button
     }catch(err){ console.error('Error en checkAutoGenerateBoletas:', err); }
   }
 
