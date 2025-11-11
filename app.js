@@ -2,23 +2,31 @@
 const STORAGE_KEY = 'almuerzos_v1';
 const CLIENTS_STORAGE_KEY = 'clientes_v1';
 
-// Clientes predefinidos
+// Clientes predefinidos (incluye contactos específicos solicitados)
 const DEFAULT_CLIENTS = [
+  { name: 'Mama', phone: '966511343' },
+  { name: 'Privado', phone: '901285240' },
   'Luis', 'Marcos', 'Gabriel', 'Carlos', 'Ruth', 'Darith',
   'Jorsy', 'Wilder', 'Mayra', 'Lio', 'Jose Peña'
 ];
+// Boletas storage key
+const BOLETAS_KEY = 'boletas_v1';
 ;
 
 class LunchApp {
   constructor() {
     this.meals = [];
     this.clients = [];
+    this.boletas = [];
     this.cache();
     this.loadClients();
     this.bindClients();
     this.load();
+    this.loadBoletas();
+    this.checkAutoGenerateBoletas();
     this.renderClientSelect();
     this.bind();
+  this.renderBoletas();
     this.render();
     // no PWA/installation prompt: keep app as web app with JSON/localStorage
   }
@@ -28,6 +36,7 @@ class LunchApp {
     this.selectClient = document.getElementById('select-client');
     this.btnAddClient = document.getElementById('btn-add-client');
     this.newClientName = document.getElementById('new-client-name');
+  this.newClientPhone = document.getElementById('new-client-phone');
     this.inputDate = document.getElementById('input-date');
     this.inputQty = document.getElementById('input-qty');
     this.inputNotes = document.getElementById('input-notes');
@@ -43,6 +52,8 @@ class LunchApp {
     this.btnExportJson = document.getElementById('btn-export-json');
     this.btnImportJson = document.getElementById('btn-import-json');
     this.fileImport = document.getElementById('file-import');
+    this.btnGenerateBoleta = document.getElementById('btn-generate-boleta');
+    this.boletasContainer = document.getElementById('boletas-container');
   }
 
   loadClients() {
@@ -148,6 +159,10 @@ class LunchApp {
     if (this.btnImportJson && this.fileImport) {
       this.btnImportJson.addEventListener('click', () => this.fileImport.click());
       this.fileImport.addEventListener('change', (e) => this.handleImportFile(e));
+    }
+
+    if (this.btnGenerateBoleta) {
+      this.btnGenerateBoleta.addEventListener('click', () => this.generateBoletaForLastPeriod());
     }
 
     // when client selected, fill whatsappNumber if known
@@ -420,6 +435,164 @@ class LunchApp {
     const a = document.createElement('a');
     a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
     a.download = 'almuerzos.json';
+    a.click();
+  }
+
+  /* Boletas: carga/guardado, generación automática (cada 15 días) y UI */
+  loadBoletas(){
+    try{
+      const raw = localStorage.getItem(BOLETAS_KEY);
+      this.boletas = raw ? JSON.parse(raw) : [];
+    }catch(err){ console.error('Error cargando boletas:', err); this.boletas = []; }
+  }
+
+  saveBoletas(){
+    localStorage.setItem(BOLETAS_KEY, JSON.stringify(this.boletas));
+  }
+
+  // Comprueba si han pasado 15 días desde la última boleta; si es así, genera nuevas boletas
+  checkAutoGenerateBoletas(){
+    try{
+      const today = new Date();
+      if (!this.boletas || this.boletas.length === 0) {
+        // Generar la boleta del periodo actual (últimos 15 días)
+        const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const start = new Date(end);
+        start.setDate(end.getDate() - 14);
+        this.generateBoleta(start, end);
+        return;
+      }
+      const lastCreated = new Date(this.boletas[this.boletas.length - 1].createdAt);
+      const diffDays = Math.floor((today - lastCreated) / (1000*60*60*24));
+      if (diffDays >= 15) {
+        // generar una boleta que cubra desde el día siguiente al último creado hasta 14 días después
+        const start = new Date(lastCreated);
+        start.setDate(start.getDate() + 1);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 14);
+        this.generateBoleta(start, end);
+      }
+    }catch(err){ console.error('Error en checkAutoGenerateBoletas:', err); }
+  }
+
+  // Generar una boleta para un periodo dado (Date objects)
+  generateBoleta(startDate, endDate){
+    try{
+      // normalizar fechas a yyyy-mm-dd
+      const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const items = this.meals.filter(m => {
+        const md = new Date(m.date + 'T00:00:00');
+        return md >= start && md <= end;
+      });
+
+      const summaryByClient = {};
+      items.forEach(m => {
+        if (!summaryByClient[m.name]) summaryByClient[m.name] = { name: m.name, qty: 0, items: [] };
+        summaryByClient[m.name].qty += (m.qty || 0);
+        summaryByClient[m.name].items.push({ date: m.date, qty: m.qty, notes: m.notes });
+      });
+
+      const summary = Object.values(summaryByClient);
+      const boleta = {
+        id: cryptoRandomId(),
+        createdAt: new Date().toISOString(),
+        periodStart: start.toISOString().slice(0,10),
+        periodEnd: end.toISOString().slice(0,10),
+        totalOrders: items.length,
+        totalQty: items.reduce((s,it)=>s+(it.qty||0),0),
+        summary
+      };
+
+      this.boletas.push(boleta);
+      this.saveBoletas();
+      this.renderBoletas();
+      showToast('Boleta generada', 'success');
+    }catch(err){ console.error('Error generando boleta:', err); showAlert('Boletas','Error al generar boleta','error'); }
+  }
+
+  // Botón: generar boleta para los últimos 15 días (manual)
+  generateBoletaForLastPeriod(){
+    const today = new Date();
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const start = new Date(end);
+    start.setDate(end.getDate() - 14);
+    // confirmar antes de generar manualmente
+    if (window.Swal) {
+      Swal.fire({
+        title: 'Generar boleta',
+        text: `Generar boleta para el periodo ${start.toISOString().slice(0,10)} — ${end.toISOString().slice(0,10)}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Generar',
+        cancelButtonText: 'Cancelar'
+      }).then(res => { if (res.isConfirmed) this.generateBoleta(start,end); });
+    } else {
+      if (confirm(`Generar boleta para el periodo ${start.toISOString().slice(0,10)} — ${end.toISOString().slice(0,10)}?`)) this.generateBoleta(start,end);
+    }
+  }
+
+  renderBoletas(){
+    if (!this.boletasContainer) return;
+    this.boletasContainer.innerHTML = '';
+    if (!this.boletas || this.boletas.length === 0) {
+      this.boletasContainer.innerHTML = '<p>No hay boletas generadas.</p>';
+      return;
+    }
+    for (const b of this.boletas.slice().reverse()) {
+      const div = document.createElement('div');
+      div.className = 'boleta-item';
+      div.innerHTML = `
+        <div class="boleta-info">
+          <div><strong>Periodo:</strong> ${b.periodStart} — ${b.periodEnd}</div>
+          <div><strong>Generada:</strong> ${new Date(b.createdAt).toLocaleString()}</div>
+          <div><strong>Pedidos:</strong> ${b.totalOrders} — <strong>Cantidad total:</strong> ${b.totalQty}</div>
+        </div>
+        <div class="boleta-actions">
+          <button data-id="${b.id}" class="btn btn-small" data-action="view">Ver</button>
+          <button data-id="${b.id}" class="btn btn-small" data-action="export">Exportar</button>
+        </div>
+      `;
+      this.boletasContainer.appendChild(div);
+    }
+
+    // attach handlers
+    this.boletasContainer.querySelectorAll('button').forEach(btn => {
+      btn.onclick = (e) => {
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'view') this.viewBoleta(id);
+        if (action === 'export') this.exportBoleta(id);
+      };
+    });
+  }
+
+  viewBoleta(id){
+    const b = this.boletas.find(x => x.id === id);
+    if (!b) return showAlert('Boletas','Boleta no encontrada','error');
+    const lines = [];
+    lines.push(`Boleta: ${b.periodStart} — ${b.periodEnd}`);
+    lines.push(`Generada: ${new Date(b.createdAt).toLocaleString()}`);
+    lines.push('');
+    for (const s of b.summary) {
+      lines.push(`${s.name}: ${s.qty} unidades`);
+      for (const it of s.items) lines.push(`  - ${it.date}: ${it.qty} ${it.notes ? (' — ' + it.notes) : ''}`);
+    }
+    const text = lines.join('\n');
+    if (window.Swal) {
+      Swal.fire({ title: 'Boleta', html: `<pre style="text-align:left; white-space:pre-wrap">${escapeHtml(text)}</pre>`, width: 700 });
+    } else {
+      alert(text);
+    }
+  }
+
+  exportBoleta(id){
+    const b = this.boletas.find(x => x.id === id);
+    if (!b) return showAlert('Boletas','Boleta no encontrada','error');
+    const data = JSON.stringify(b, null, 2);
+    const a = document.createElement('a');
+    a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+    a.download = `boleta_${b.periodStart}_${b.periodEnd}.json`;
     a.click();
   }
 }
