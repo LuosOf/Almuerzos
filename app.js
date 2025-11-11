@@ -76,7 +76,8 @@ class LunchApp {
   showRoute(hash){
     const map = {
       '#new': 'section-new',
-      '#filters': 'section-filters',
+      // '#filters' ahora muestra la misma sección que '#list' (filtros integrados)
+      '#filters': 'section-list',
       '#share': 'section-share',
       '#boletas': 'section-boletas',
       '#list': 'section-list'
