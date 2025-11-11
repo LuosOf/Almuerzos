@@ -45,7 +45,6 @@ body {
   color: white;
   padding: 24px 16px;
   box-shadow: var(--shadow-md);
-  
 }
 
 .header-inner {
@@ -101,7 +100,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.35);
-    backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index:50;
 }
 
@@ -254,14 +253,13 @@ select:focus {
 }
 
 .btn-tertiary {
-  background: var(--bg);
-  color: var(--text-secondary);
-    background: rgba(0,0,0,0.06);
-    color: var(--text-primary);
+  background: rgba(0,0,0,0.06);
+  color: var(--text-primary);
+}
 
 .btn-tertiary:hover {
-  background: #f1f5f9;
-    background: rgba(0,0,0,0.09);
+  background: rgba(0,0,0,0.09);
+}
 
 .btn-whatsapp {
   background: #25d366;
