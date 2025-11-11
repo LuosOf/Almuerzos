@@ -586,12 +586,35 @@ class LunchApp {
   }
 
   clearBoletas(){
-    showAlert('¿Limpiar todas las boletas?', 'Esta acción eliminará permanentemente todas las boletas generadas.', 'warning', ['Cancelar', 'Limpiar'], (idx) => {
+    showAlert('¿Limpiar todas las boletas?', 'Esta acción eliminará permanentemente todas las boletas generadas y los registros asociados a esas boletas.', 'warning', ['Cancelar', 'Limpiar'], (idx) => {
       if (idx === 1) {
-        this.boletas = [];
-        this.saveBoletas();
-        this.renderBoletas();
-        showToast('✅ Boletas limpiadas correctamente', 'success');
+        try {
+          // Calcular periodos de las boletas actuales
+          const periods = (this.boletas || []).map(b => ({
+            start: new Date(b.periodStart + 'T00:00:00'),
+            end: new Date(b.periodEnd + 'T23:59:59')
+          }));
+
+          // Si hay periodos, eliminar los registros (meals) que caen dentro de cualquiera de esos periodos
+          if (periods.length > 0) {
+            this.meals = (this.meals || []).filter(m => {
+              const md = new Date(m.date + 'T00:00:00');
+              return !periods.some(p => md >= p.start && md <= p.end);
+            });
+            // Guardar cambios en registros
+            this.save();
+          }
+
+          // Finalmente eliminar las boletas
+          this.boletas = [];
+          this.saveBoletas();
+          this.renderBoletas();
+          this.render();
+          showToast('✅ Boletas y registros asociados limpiados correctamente', 'success');
+        } catch (err) {
+          console.error('Error limpiando boletas y registros asociados:', err);
+          showAlert('Error', 'Ocurrió un error al intentar limpiar boletas y registros asociados.', 'error');
+        }
       }
     });
   }
