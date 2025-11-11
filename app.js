@@ -23,6 +23,7 @@ class LunchApp {
     this.bindClients();
     this.load();
     this.loadBoletas();
+    this.initRouter();
     this.checkAutoGenerateBoletas();
     this.renderClientSelect();
     this.bind();
@@ -57,6 +58,36 @@ class LunchApp {
   this.sideNav = document.getElementById('side-nav');
     this.btnGenerateBoleta = document.getElementById('btn-generate-boleta');
     this.boletasContainer = document.getElementById('boletas-container');
+    this.drawerOverlay = document.getElementById('drawer-overlay');
+  }
+
+  /* Router for SPA-style navigation using hash routes */
+  initRouter(){
+    // show correct section based on location.hash
+    const show = () => this.showRoute(location.hash || '#new');
+    window.addEventListener('hashchange', show);
+    // initial
+    show();
+    // close drawer when clicking overlay
+    if (this.drawerOverlay) this.drawerOverlay.addEventListener('click', ()=>{ document.body.classList.remove('nav-open'); this.sideNav && this.sideNav.setAttribute('aria-hidden','true'); });
+  }
+
+  showRoute(hash){
+    const map = {
+      '#new': 'section-new',
+      '#filters': 'section-filters',
+      '#share': 'section-share',
+      '#boletas': 'section-boletas',
+      '#list': 'section-list'
+    };
+    const id = map[hash] || 'section-new';
+    // hide all sections
+    document.querySelectorAll('main .card').forEach(s=> s.style.display = 'none');
+    const el = document.getElementById(id);
+    if (el) el.style.display = '';
+    // close drawer
+    document.body.classList.remove('nav-open');
+    if (this.sideNav) this.sideNav.setAttribute('aria-hidden','true');
   }
 
   loadClients() {
@@ -165,12 +196,22 @@ class LunchApp {
           document.body.classList.toggle('nav-open');
           const open = document.body.classList.contains('nav-open');
           this.sideNav.setAttribute('aria-hidden', !open);
+          if (this.drawerOverlay) this.drawerOverlay.style.display = open ? '' : 'none';
         });
         // close nav on link click
         this.sideNav.querySelectorAll('a').forEach(a => a.addEventListener('click', ()=>{
           document.body.classList.remove('nav-open');
-          this.sideNav.setAttribute('aria-hidden', 'true');
+          this.sideNav.setAttribute('aria-hidden','true');
+          if (this.drawerOverlay) this.drawerOverlay.style.display = 'none';
         }));
+      }
+      // close drawer on overlay click
+      if (this.drawerOverlay) {
+        this.drawerOverlay.addEventListener('click', ()=>{
+          document.body.classList.remove('nav-open');
+          if (this.sideNav) this.sideNav.setAttribute('aria-hidden','true');
+          this.drawerOverlay.style.display = 'none';
+        });
       }
     if (this.btnGenerateBoleta) {
       this.btnGenerateBoleta.addEventListener('click', () => this.generateBoletaForLastPeriod());
@@ -520,7 +561,7 @@ class LunchApp {
       const hasBoletas = (this.boletas && this.boletas.length > 0);
       const nav = document.getElementById('side-nav');
       if (!nav) return;
-      const link = nav.querySelector('a[href="boletas.html"]') || nav.querySelector('a[href="#section-boletas"]');
+      const link = nav.querySelector('a[href="#boletas"]');
       if (!link) return;
       link.style.display = hasBoletas ? '' : 'none';
     }catch(e){}
@@ -542,23 +583,21 @@ class LunchApp {
   checkAutoGenerateBoletas(){
     try{
       const today = new Date();
-      if (!this.boletas || this.boletas.length === 0) {
-        // Generar la boleta del periodo actual (últimos 15 días)
+      const day = today.getDate();
+      // If no boletas exist, do nothing by default (user asked not to show empty). We'll generate only on scheduled days.
+      // Scheduled generation on day 1 and 15: create boleta for [today-14 .. today]
+      if (day === 1 || day === 15) {
         const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const start = new Date(end);
         start.setDate(end.getDate() - 14);
-        this.generateBoleta(start, end);
-        return;
-      }
-      const lastCreated = new Date(this.boletas[this.boletas.length - 1].createdAt);
-      const diffDays = Math.floor((today - lastCreated) / (1000*60*60*24));
-      if (diffDays >= 15) {
-        // generar una boleta que cubra desde el día siguiente al último creado hasta 14 días después
-        const start = new Date(lastCreated);
-        start.setDate(start.getDate() + 1);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 14);
-        this.generateBoleta(start, end);
+        // check if a boleta for the same period already exists
+        const periodStart = start.toISOString().slice(0,10);
+        const periodEnd = end.toISOString().slice(0,10);
+        const exists = (this.boletas || []).some(b => b.periodStart === periodStart && b.periodEnd === periodEnd);
+        if (!exists) {
+          // show preview and generate after confirmation
+          this.showBoletaPreviewAndMaybeGenerate(start, end);
+        }
       }
     }catch(err){ console.error('Error en checkAutoGenerateBoletas:', err); }
   }
@@ -605,19 +644,41 @@ class LunchApp {
     const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const start = new Date(end);
     start.setDate(end.getDate() - 14);
-    // confirmar antes de generar manualmente
-    if (window.Swal) {
-      Swal.fire({
-        title: 'Generar boleta',
-        text: `Generar boleta para el periodo ${start.toISOString().slice(0,10)} — ${end.toISOString().slice(0,10)}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Generar',
-        cancelButtonText: 'Cancelar'
-      }).then(res => { if (res.isConfirmed) this.generateBoleta(start,end); });
-    } else {
-      if (confirm(`Generar boleta para el periodo ${start.toISOString().slice(0,10)} — ${end.toISOString().slice(0,10)}?`)) this.generateBoleta(start,end);
-    }
+    // show preview and then generate on confirmation
+    this.showBoletaPreviewAndMaybeGenerate(start, end);
+  }
+
+  // Show preview of boleta summary and generate after user confirms
+  showBoletaPreviewAndMaybeGenerate(start, end){
+    try{
+      const items = this.meals.filter(m => {
+        const md = new Date(m.date + 'T00:00:00');
+        return md >= start && md <= end;
+      });
+      if (!items || items.length === 0) {
+        showAlert('Boletas','No hay registros en el periodo seleccionado. No se generará boleta.','info');
+        return;
+      }
+      const summaryByClient = {};
+      items.forEach(m => {
+        if (!summaryByClient[m.name]) summaryByClient[m.name] = { name: m.name, qty: 0 };
+        summaryByClient[m.name].qty += (m.qty || 0);
+      });
+      const rows = Object.values(summaryByClient).map(s => `<div>${escapeHtml(s.name)} — ${s.qty} unidades</div>`).join('');
+      const html = `<div style="text-align:left"><strong>Periodo:</strong> ${start.toISOString().slice(0,10)} — ${end.toISOString().slice(0,10)}<br/><br/>${rows}</div>`;
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Vista previa de la boleta',
+          html,
+          showCancelButton: true,
+          confirmButtonText: 'Generar boleta',
+          cancelButtonText: 'Cancelar',
+          width: 700
+        }).then(res=>{ if (res.isConfirmed) this.generateBoleta(start,end); });
+      } else {
+        if (confirm('Generar boleta para el periodo?')) this.generateBoleta(start,end);
+      }
+    }catch(err){ console.error('Error mostrando preview boleta:', err); showAlert('Boletas','Error al preparar la vista previa.','error'); }
   }
 
   renderBoletas(){
@@ -638,7 +699,8 @@ class LunchApp {
         </div>
         <div class="boleta-actions">
           <button data-id="${b.id}" class="btn btn-small" data-action="view">Ver</button>
-          <button data-id="${b.id}" class="btn btn-small" data-action="export">Exportar</button>
+          <button data-id="${b.id}" class="btn btn-small" data-action="export">JSON</button>
+          <button data-id="${b.id}" class="btn btn-small" data-action="exportpdf">PDF</button>
         </div>
       `;
       this.boletasContainer.appendChild(div);
@@ -651,6 +713,7 @@ class LunchApp {
         const id = btn.dataset.id;
         if (action === 'view') this.viewBoleta(id);
         if (action === 'export') this.exportBoleta(id);
+        if (action === 'exportpdf') this.exportBoletaPDF(id);
       };
     });
   }
@@ -682,6 +745,38 @@ class LunchApp {
     a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
     a.download = `boleta_${b.periodStart}_${b.periodEnd}.json`;
     a.click();
+  }
+
+  exportBoletaPDF(id){
+    const b = this.boletas.find(x => x.id === id);
+    if (!b) return showAlert('Boletas','Boleta no encontrada','error');
+    try{
+      // jsPDF is included via CDN (index.html). Use UMD global:
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF) { showAlert('PDF','La librería jsPDF no está cargada.','error'); return; }
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text(`Boleta: ${b.periodStart} — ${b.periodEnd}`, 14, 20);
+      doc.setFontSize(11);
+      doc.text(`Generada: ${new Date(b.createdAt).toLocaleString()}`, 14, 28);
+      doc.text(`Pedidos: ${b.totalOrders}    Cantidad total: ${b.totalQty}`, 14, 36);
+      let y = 46;
+      for (const s of b.summary) {
+        doc.text(`${s.name}: ${s.qty} unidades`, 14, y);
+        y += 6;
+        if (s.items && s.items.length) {
+          for (const it of s.items) {
+            doc.text(`  - ${it.date}: ${it.qty} ${it.notes ? (' — ' + it.notes) : ''}`, 18, y);
+            y += 5;
+            if (y > 270) { doc.addPage(); y = 20; }
+          }
+        }
+        y += 4;
+        if (y > 270) { doc.addPage(); y = 20; }
+      }
+      const filename = `boleta_${b.periodStart}_${b.periodEnd}.pdf`;
+      doc.save(filename);
+    }catch(err){ console.error('Error exportando PDF:', err); showAlert('PDF','Error creando PDF.','error'); }
   }
 }
 

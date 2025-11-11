@@ -76,23 +76,37 @@ body {
 
 /* Side navigation (hamburger menu) */
 .side-nav {
-  position: absolute;
-  top: 80px;
-  left: 16px;
-  background: rgba(255,255,255,0.98);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 260px;
+  background: var(--card);
   color: var(--text-primary);
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: 0 12px 12px 0;
+  padding: 20px 14px;
   box-shadow: var(--shadow-md);
-  display: none;
-  z-index: 40;
+  transform: translateX(-110%);
+  transition: transform 260ms ease;
+  z-index: 60;
 }
 
 .side-nav ul { list-style: none; }
 .side-nav li { margin: 6px 0; }
 .side-nav a { color: var(--text-primary); text-decoration: none; font-weight:600; }
 
-body.nav-open .side-nav { display: block; }
+/* overlay for drawer */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index:50;
+}
+
+body.nav-open .drawer-overlay { opacity: 1; pointer-events: auto; }
+body.nav-open .side-nav { transform: translateX(0); }
+
+.nav-icon { margin-right:8px; font-size:1.05rem; }
 
 /* Main Content */
 .app-main {

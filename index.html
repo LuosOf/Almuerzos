@@ -9,6 +9,7 @@
   </head>
   <body>
     <div class="app-container">
+      <div class="drawer-overlay" id="drawer-overlay" style="display:none"></div>
       <!-- Header -->
       <header class="app-header">
         <div class="header-inner">
@@ -20,11 +21,11 @@
         </div>
         <nav id="side-nav" class="side-nav" aria-hidden="true">
           <ul>
-            <li><a href="new.html">Nuevo registro</a></li>
-            <li><a href="filters.html">Filtros</a></li>
-            <li><a href="share.html">Compartir</a></li>
-            <li><a href="boletas.html">Boletas</a></li>
-            <li><a href="list.html">Registros</a></li>
+            <li><a href="#new"><span class="nav-icon">➕</span> Nuevo registro</a></li>
+            <li><a href="#filters"><span class="nav-icon">🔎</span> Filtros</a></li>
+            <li><a href="#share"><span class="nav-icon">📤</span> Compartir</a></li>
+            <li><a href="#boletas"><span class="nav-icon">📄</span> Boletas</a></li>
+            <li><a href="#list"><span class="nav-icon">📋</span> Registros</a></li>
           </ul>
         </nav>
       </header>
@@ -136,6 +137,8 @@
 
     <!-- SweetAlert2 para alerts/confirm modernos -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- jsPDF for client-side PDF export of boletas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>
