@@ -103,6 +103,29 @@
           <small class="help-text">Las boletas también se generan automáticamente cada 15 días al abrir la app.</small>
         </section>
 
+        <!-- Importar datos desde otro dispositivo -->
+        <section class="card import-card">
+          <h3>Importar datos (desde otro dispositivo)</h3>
+          <div class="import-options">
+            <label><input type="checkbox" id="import-meals" checked /> Registros (meals)</label>
+            <label><input type="checkbox" id="import-clients" /> Clientes</label>
+            <label><input type="checkbox" id="import-boletas" /> Boletas</label>
+          </div>
+          <div class="import-mode">
+            <label for="import-mode">Modo:</label>
+            <select id="import-mode">
+              <option value="replace">Reemplazar</option>
+              <option value="merge">Combinar (merge)</option>
+            </select>
+          </div>
+          <div class="import-actions">
+            <button id="btn-import-file-visible" type="button" class="btn">Seleccionar archivo JSON</button>
+            <button id="btn-import-paste" type="button" class="btn">Importar desde texto</button>
+          </div>
+          <textarea id="json-paste" placeholder="Pega aquí el JSON exportado desde otro dispositivo..." style="width:100%;height:120px;margin-top:8px;"></textarea>
+          <small class="help-text">Si el archivo contiene un arreglo, se interpretará como registros (meals). Para importar clientes o boletas, utiliza un objeto con claves: <code>{ "meals": [...], "clients": [...], "boletas": [...] }</code>.</small>
+        </section>
+
         <!-- Lista de registros -->
         <section class="card list-card">
           <h2>Registros</h2>
