@@ -44,19 +44,55 @@ body {
   color: white;
   padding: 24px 16px;
   box-shadow: var(--shadow-md);
-  text-align: center;
+  
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hamburger {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  font-size: 1.25rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .header-content h1 {
-  font-size: 1.8rem;
-  margin-bottom: 6px;
+  font-size: 1.6rem;
+  margin-bottom: 4px;
   font-weight: 700;
 }
 
 .header-content p {
-  font-size: 0.95rem;
-  opacity: 0.9;
+  font-size: 0.85rem;
+  opacity: 0.95;
 }
+
+/* Side navigation (hamburger menu) */
+.side-nav {
+  position: absolute;
+  top: 80px;
+  left: 16px;
+  background: rgba(255,255,255,0.98);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  display: none;
+  z-index: 40;
+}
+
+.side-nav ul { list-style: none; }
+.side-nav li { margin: 6px 0; }
+.side-nav a { color: var(--text-primary); text-decoration: none; font-weight:600; }
+
+body.nav-open .side-nav { display: block; }
 
 /* Main Content */
 .app-main {

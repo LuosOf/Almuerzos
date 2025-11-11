@@ -49,16 +49,12 @@ class LunchApp {
     this.btnClear = document.getElementById('btn-clear');
     this.whatsappNumber = document.getElementById('whatsapp-number');
     this.btnWhatsApp = document.getElementById('btn-whatsapp');
-    this.btnExportJson = document.getElementById('btn-export-json');
-    this.btnImportJson = document.getElementById('btn-import-json');
-    this.fileImport = document.getElementById('file-import');
-    this.importMealsCheckbox = document.getElementById('import-meals');
-    this.importClientsCheckbox = document.getElementById('import-clients');
-    this.importBoletasCheckbox = document.getElementById('import-boletas');
-    this.importMode = document.getElementById('import-mode');
-    this.btnImportFileVisible = document.getElementById('btn-import-file-visible');
-    this.btnImportPaste = document.getElementById('btn-import-paste');
-    this.jsonPaste = document.getElementById('json-paste');
+  this.btnExportJson = document.getElementById('btn-export-json');
+  this.btnImportJson = document.getElementById('btn-import-json');
+  this.fileImport = document.getElementById('file-import');
+  // menu toggles
+  this.btnMenu = document.getElementById('btn-menu');
+  this.sideNav = document.getElementById('side-nav');
     this.btnGenerateBoleta = document.getElementById('btn-generate-boleta');
     this.boletasContainer = document.getElementById('boletas-container');
   }
@@ -163,13 +159,19 @@ class LunchApp {
     this.btnClear.addEventListener('click', () => this.form.reset());
     this.btnWhatsApp.addEventListener('click', () => this.shareToWhatsApp());
     this.btnExportJson.addEventListener('click', () => this.exportJson());
-    if (this.btnImportJson && this.fileImport) {
-      this.btnImportJson.addEventListener('click', () => this.fileImport.click());
-      this.fileImport.addEventListener('change', (e) => this.handleImportFile(e));
-    }
-    // visible file button and paste import
-    if (this.btnImportFileVisible) this.btnImportFileVisible.addEventListener('click', () => this.fileImport && this.fileImport.click());
-    if (this.btnImportPaste) this.btnImportPaste.addEventListener('click', () => this.importFromPaste());
+      // menu toggle
+      if (this.btnMenu && this.sideNav) {
+        this.btnMenu.addEventListener('click', () => {
+          document.body.classList.toggle('nav-open');
+          const open = document.body.classList.contains('nav-open');
+          this.sideNav.setAttribute('aria-hidden', !open);
+        });
+        // close nav on link click
+        this.sideNav.querySelectorAll('a').forEach(a => a.addEventListener('click', ()=>{
+          document.body.classList.remove('nav-open');
+          this.sideNav.setAttribute('aria-hidden', 'true');
+        }));
+      }
     if (this.btnGenerateBoleta) {
       this.btnGenerateBoleta.addEventListener('click', () => this.generateBoletaForLastPeriod());
     }
@@ -402,18 +404,35 @@ class LunchApp {
     reader.onload = (ev) => {
       try{
         const data = JSON.parse(ev.target.result);
-        const options = {
-          meals: (this.importMealsCheckbox && this.importMealsCheckbox.checked) || false,
-          clients: (this.importClientsCheckbox && this.importClientsCheckbox.checked) || false,
-          boletas: (this.importBoletasCheckbox && this.importBoletasCheckbox.checked) || false
-        };
-        // si no seleccionó nada, asumimos meals
-        if (!options.meals && !options.clients && !options.boletas) options.meals = true;
-        const mode = (this.importMode && this.importMode.value) || 'replace';
-        this.importDataFromObject(data, mode, options);
+        if (!Array.isArray(data)) throw new Error('JSON debe ser un arreglo de registros');
+        // confirm replace
+        if (window.Swal) {
+          Swal.fire({
+            title: 'Importar JSON',
+            text: '¿Deseas reemplazar los registros actuales con los del archivo importado?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Reemplazar',
+            cancelButtonText: 'Cancelar'
+          }).then(res => {
+            if (res.isConfirmed) {
+              this.meals = data;
+              this.save();
+              this.render();
+              showToast('Importación completada', 'success');
+            }
+          });
+        } else {
+          if (confirm('Reemplazar registros actuales con los del archivo importado?')){
+            this.meals = data;
+            this.save();
+            this.render();
+            showToast('Importación completada', 'success');
+          }
+        }
       }catch(err){
         console.error('Error importando JSON:', err);
-        showAlert('Importar', 'Archivo JSON inválido. Asegúrate de que contiene JSON válido.', 'error');
+        showAlert('Importar', 'Archivo JSON inválido. Asegúrate de que contiene un arreglo de registros.', 'error');
       } finally {
         // reset file input
         try{ this.fileImport.value = ''; } catch(e){}
@@ -422,91 +441,6 @@ class LunchApp {
     reader.readAsText(file);
   }
 
-  // Import desde texto pegado en textarea
-  importFromPaste(){
-    try{
-      const raw = (this.jsonPaste && this.jsonPaste.value) || '';
-      if (!raw) { showAlert('Importar', 'Pega el JSON en el cuadro antes de importar.', 'warning'); return; }
-      const data = JSON.parse(raw);
-      const options = {
-        meals: (this.importMealsCheckbox && this.importMealsCheckbox.checked) || false,
-        clients: (this.importClientsCheckbox && this.importClientsCheckbox.checked) || false,
-        boletas: (this.importBoletasCheckbox && this.importBoletasCheckbox.checked) || false
-      };
-      if (!options.meals && !options.clients && !options.boletas) options.meals = true;
-      const mode = (this.importMode && this.importMode.value) || 'replace';
-      this.importDataFromObject(data, mode, options);
-    }catch(err){ console.error('Error importando desde texto:', err); showAlert('Importar','JSON inválido. Revisa el formato.','error'); }
-  }
-
-  // Importar un objeto/array con opciones (mode: 'replace'|'merge', options: {meals,clients,boletas})
-  importDataFromObject(data, mode='replace', options={meals:true,clients:false,boletas:false}){
-    try{
-      // Meals
-      if (options.meals) {
-        let incomingMeals = [];
-        if (Array.isArray(data)) incomingMeals = data;
-        else if (data && Array.isArray(data.meals)) incomingMeals = data.meals;
-
-        if (mode === 'replace') {
-          // normalize ids
-          this.meals = incomingMeals.map(m => ({ id: m.id || cryptoRandomId(), name: m.name || '', date: m.date || '', qty: m.qty || 0, notes: m.notes || '', delivered: !!m.delivered, createdAt: m.createdAt || new Date().toISOString() }));
-        } else {
-          // merge: avoid duplicates by id or by (name+date+qty)
-          const existsById = new Set(this.meals.map(x => x.id));
-          for (const m of incomingMeals) {
-            if (m.id && existsById.has(m.id)) continue;
-            const duplicate = this.meals.find(x => x.name === m.name && x.date === m.date && (x.qty||0) === (m.qty||0));
-            if (duplicate) continue;
-            const item = { id: m.id || cryptoRandomId(), name: m.name || '', date: m.date || '', qty: m.qty || 0, notes: m.notes || '', delivered: !!m.delivered, createdAt: m.createdAt || new Date().toISOString() };
-            this.meals.push(item);
-          }
-        }
-        this.save();
-        this.render();
-      }
-
-      // Clients
-      if (options.clients) {
-        const incomingClients = Array.isArray(data.clients) ? data.clients : (Array.isArray(data) ? [] : []);
-        if (mode === 'replace') {
-          this.clients = incomingClients.map(c => ({ name: c.name || '', phone: c.phone || '' }));
-        } else {
-          for (const c of incomingClients) {
-            if (!c || !c.name) continue;
-            const existing = this.clients.find(x => x.name === c.name);
-            if (existing) {
-              if (!existing.phone && c.phone) existing.phone = c.phone;
-            } else {
-              this.clients.push({ name: c.name, phone: c.phone || '' });
-            }
-          }
-        }
-        this.clients.sort((a,b)=>a.name.localeCompare(b.name));
-        this.saveClients();
-        this.renderClientSelect();
-      }
-
-      // Boletas
-      if (options.boletas) {
-        const incomingBoletas = Array.isArray(data.boletas) ? data.boletas : [];
-        if (mode === 'replace') {
-          this.boletas = incomingBoletas.map(b => ({ ...b, id: b.id || cryptoRandomId() }));
-        } else {
-          const ids = new Set(this.boletas.map(b=>b.id));
-          for (const b of incomingBoletas) {
-            if (!b) continue;
-            if (b.id && ids.has(b.id)) continue;
-            this.boletas.push({ ...b, id: b.id || cryptoRandomId() });
-          }
-        }
-        this.saveBoletas();
-        this.renderBoletas();
-      }
-
-      showToast('Importación completada', 'success');
-    }catch(err){ console.error('Error importando datos:', err); showAlert('Importar','Ocurrió un error durante la importación. Revisa el JSON.','error'); }
-  }
 
   exportJson(){
     const data = JSON.stringify(this.meals, null, 2);
